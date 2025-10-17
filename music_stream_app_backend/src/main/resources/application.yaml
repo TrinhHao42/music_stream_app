@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: music_stream_app_backend
+
+  datasource:
+    username: root
+    password: rootpassword
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3306/music_stream_db
+
+  jpa:
+    hibernate:
+      ddl-auto: update
