@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "music_stream_app",
-    "slug": "music_stream_app",
+    "name": "music_stream_app_frontend",
+    "slug": "music_stream_app_frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "musicstreamapp",
+    "scheme": "musicstreamappfrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
