@@ -1,10 +1,10 @@
-import { FlatList, Image, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 
 const tracks = new Array(8).fill(0).map((_, i) => ({ id: String(i), title: `Track ${i + 1}`, duration: '3:2' + i }));
 
 export default function PlaylistDetails() {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../../assets/images/Playlist Details - Audio Listing/Image 50.png')} style={styles.img} />
         <View style={{ marginLeft: 12 }}>
@@ -15,7 +15,6 @@ export default function PlaylistDetails() {
 
       <FlatList
         data={tracks}
-        keyExtractor={(t) => t.id}
         contentContainerStyle={{ padding: 12 }}
         renderItem={({ item, index }) => (
           <View style={styles.row}>
@@ -25,7 +24,7 @@ export default function PlaylistDetails() {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
