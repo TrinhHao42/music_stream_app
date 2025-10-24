@@ -14,7 +14,7 @@ const Tab = createBottomTabNavigator();
 function HomeTabs() {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Home" component={LaunchScreen} />
+      <Tab.Screen name="LaunchScreen" component={LaunchScreen} />
       <Tab.Screen name="Library" component={MyLibrary} />
       <Tab.Screen name="Playlists" component={MyPlaylists} />
       <Tab.Screen name="Search" component={SearchAudio} />
