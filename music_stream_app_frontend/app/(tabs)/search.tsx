@@ -4,7 +4,7 @@ import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'r
 
 const results = ['Result 1', 'Result 2', 'Result 3', 'Result 4', 'Result 5', 'Result 6', 'Result 7', 'Result 8', 'Result 9', 'Result 10', 'Result 11', 'Result 12', 'Result 13', 'Result 14', 'Result 15'];
 
-export default function SearchAudio() {
+const SearchScreen = () => {
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>('');
 
@@ -74,3 +74,5 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 15, color: 'gray' },
 });
+
+export default SearchScreen;

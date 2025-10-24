@@ -1,3 +1,4 @@
+import Entypo from '@expo/vector-icons/Entypo';
 import { useNavigation } from '@react-navigation/native';
 import { useRef, useState } from 'react';
 import { Animated, Dimensions, FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -76,11 +77,26 @@ const SubscriptionPlans = () => {
                   </View>
                 </View>
                 <View style={styles.features}>
-                  <Text style={styles.feature}>• Ad-free listening</Text>
-                  <Text style={styles.feature}>• Download to listen offline</Text>
-                  <Text style={styles.feature}>• Access full catalog</Text>
-                  <Text style={styles.feature}>• High sound quality</Text>
-                  <Text style={styles.feature}>• Cancel anytime</Text>
+                  <Text style={styles.feature}>
+                    <Entypo name="check" size={24} color="black" />
+                    Ad-free listening
+                  </Text>
+                  <Text style={styles.feature}>
+                    <Entypo name="check" size={24} color="black" />
+                    Download to listen offline
+                  </Text>
+                  <Text style={styles.feature}>
+                    <Entypo name="check" size={24} color="black" />
+                    Access full catalog
+                  </Text>
+                  <Text style={styles.feature}>
+                    <Entypo name="check" size={24} color="black" />
+                    High sound quality
+                  </Text>
+                  <Text style={styles.feature}>
+                    <Entypo name="check" size={24} color="black" />
+                    Cancel anytime
+                  </Text>
                 </View>
                 <TouchableOpacity style={styles.button}>
                   <Text style={styles.buttonText}>Subscribe now</Text>
