@@ -1,5 +1,6 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Animated, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const data = [
   { id: '1', title: 'Mer Waston', image: require('../../assets/images/My Library/Image 107.png'), type: 'artist' },
@@ -11,12 +12,28 @@ const data = [
   { id: '7', title: 'Dynamite', image: require('../../assets/images/My Library/Image 106.png'), type: 'song' },
 ];
 
+const categrories = ['Playlists', "New tag", "Songs", "Albums", "Artists"];
+
 const MyLibrary = () => {
   return (
     <View style={styles.container}>
-      <View style={{ padding: 10 }}>
+      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 }}>
         <Text style={styles.header}>My Library</Text>
+        <TouchableOpacity>
+          <Ionicons name="search-sharp" size={24} color="black" />
+        </TouchableOpacity>
       </View>
+      <Animated.FlatList
+        data={categrories}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 10 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.category} key={item} activeOpacity={0.5}>
+            <Text>{item}</Text>
+          </TouchableOpacity>
+        )}
+      />
       <FlatList
         data={data}
         contentContainerStyle={styles.floatList}
@@ -37,13 +54,13 @@ const MyLibrary = () => {
           }
 
           return (
-            <View style={styles.card}>
+            <TouchableOpacity style={styles.card} activeOpacity={0.8}>
               <Image source={item.image} style={styles.img} />
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.title}>{item.title}</Text>
               </View>
               {icon}
-            </View>
+            </TouchableOpacity>
           );
         }}
       />
@@ -53,11 +70,12 @@ const MyLibrary = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: { fontSize: 22, fontWeight: '700', padding: 16 },
+  header: { fontSize: 22, fontWeight: '700'},
   floatList: {
     flexDirection: 'column',
     gap: 16,
   },
+  category: { marginRight: 15, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#eee', borderRadius: 20 },
   card: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginVertical: 7 },
   img: { borderRadius: 8 },
   title: { fontSize: 17 },
