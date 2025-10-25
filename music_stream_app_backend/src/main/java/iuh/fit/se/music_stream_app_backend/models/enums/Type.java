@@ -8,8 +8,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @AllArgsConstructor
 @Getter
-public enum Role {
-    GUEST("GUEST"), USER("USER"),  ADMIN("ADMIN");
-
-    String roleName;
+public enum Type {
+    STANDARD("Standard"),
+    PREMIUM("Premium");
+    String typeName;
 }
