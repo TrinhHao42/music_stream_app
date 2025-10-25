@@ -10,14 +10,22 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                .authorizeHttpRequests(auth -> auth
+                        // chỉ người dùng PREMIUM được truy cập endpoint /premium/**
+                        .requestMatchers("/premium/**").hasRole("PREMIUM")
+
+                        // cả STANDARD và PREMIUM đều được truy cập endpoint /user/**
+                        .requestMatchers("/user/**").hasAnyRole("STANDARD", "PREMIUM")
+
+                        // các request khác được phép tự do (public API)
                         .anyRequest().permitAll()
                 )
-                .logout(LogoutConfigurer::permitAll);
+                .logout(LogoutConfigurer::permitAll)
+                .csrf(csrf -> csrf.disable()); // tạm tắt CSRF nếu dùng API (REST)
 
         return http.build();
     }

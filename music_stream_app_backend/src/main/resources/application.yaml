@@ -1,13 +1,14 @@
 spring:
-  application:
-    name: music_stream_app_backend
+  data:
+    mongodb:
+      uri: mongodb+srv://musicAppMobileAdmin:sapassword@cluster0.b9md2md.mongodb.net/music_stream_app
+      database: musicAppMobile
+      field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
+      # ⚠️ Thêm dòng này để tắt _class
+      mapping:
+        auto-index-creation: true
+  main:
+    allow-bean-definition-overriding: true
 
-  datasource:
-    username: root
-    password: rootpassword
-    driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://localhost:3306/music_stream_db
-
-  jpa:
-    hibernate:
-      ddl-auto: update
+# Ẩn _class
+spring.data.mongodb.mapping.type-key: null
