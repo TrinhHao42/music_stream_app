@@ -1,12 +1,12 @@
-import Artist from "./Artist";
 
 type Song = {
-    id: number;
-    title: string;
-    artist: Artist;
-    duration: number;
-    views: number;
-    image: string;
-}
+  id: string;
+  title: string;
+  image: any;
+  artistName: string;
+  views: number;
+  duration: string;
+  type: 'song';
+};
 
 export default Song;

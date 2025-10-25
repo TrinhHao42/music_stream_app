@@ -1,11 +1,11 @@
-import Artist from './Artist';
 
 type Album = {
-    id: number;
-    title: string;
-    artist: Artist;
-    numsOfSongs: number;
-    image: string;
-}
+  id: string;
+  title: string;
+  artistName: string;
+  numOfSongs: number;
+  image: any;
+  type: 'album';
+};
 
 export default Album;
