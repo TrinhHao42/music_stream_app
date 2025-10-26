@@ -57,6 +57,12 @@ const HomeLayout = () => {
                     ),
                 }}
             />
+            <Tabs.Screen
+                name="artist-profile"
+                options={{
+                    href: null, // Ẩn khỏi bottom navigation
+                }}
+            />
         </Tabs>
     );
 }
