@@ -1,15 +1,15 @@
-import { 
-  Image, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View 
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -58,9 +58,12 @@ export default function HomeScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Suggestions for you */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Suggestions for you</Text>
+          <Text style={styles.sectionTitle}>For you</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            <View style={styles.card}>
+            <TouchableOpacity 
+              style={styles.card}
+              onPress={() => router.push('/playlist-details')}
+            >
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 36.png')} 
                 style={styles.cardImage}
@@ -69,7 +72,7 @@ export default function HomeScreen() {
                 <Text style={styles.cardTitle}>Reflection</Text>
                 <Text style={styles.cardArtist}>Christina Aguilera</Text>
               </View>
-            </View>
+            </TouchableOpacity>
             <View style={styles.card}>
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 39.png')} 
@@ -149,7 +152,13 @@ export default function HomeScreen() {
             <Text style={styles.seeAll}>See all</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            <View style={styles.artistCard}>
+            <TouchableOpacity 
+              style={styles.artistCard}
+              onPress={() => router.push({
+                pathname: '/artist-profile',
+                params: { name: 'Jennifer Wilson' }
+              })}
+            >
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 46.png')} 
                 style={styles.artistImage}
@@ -158,8 +167,14 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.followButton}>
                 <Text style={styles.followButtonText}>Follow</Text>
               </TouchableOpacity>
-            </View>
-            <View style={styles.artistCard}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.artistCard}
+              onPress={() => router.push({
+                pathname: '/artist-profile',
+                params: { name: 'Elizabeth Hall' }
+              })}
+            >
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 47.png')} 
                 style={styles.artistImage}
@@ -168,8 +183,14 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.followButton}>
                 <Text style={styles.followButtonText}>Follow</Text>
               </TouchableOpacity>
-            </View>
-            <View style={styles.artistCard}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.artistCard}
+              onPress={() => router.push({
+                pathname: '/artist-profile',
+                params: { name: 'Anthony' }
+              })}
+            >
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Avatar 3.png')} 
                 style={styles.artistImage}
@@ -178,7 +199,7 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.followButton}>
                 <Text style={styles.followButtonText}>Follow</Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </ScrollView>
@@ -250,16 +271,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
+  
     marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+ 
     marginBottom: 12,
   },
   sectionTitle: {
+    padding: 16,
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',

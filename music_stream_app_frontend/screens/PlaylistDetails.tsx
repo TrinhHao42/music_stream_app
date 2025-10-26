@@ -1,12 +1,13 @@
-import { 
-  FlatList, 
-  Image, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View 
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 // Dữ liệu mẫu
 const playlistData = {
@@ -14,7 +15,7 @@ const playlistData = {
   likes: 1234,
   duration: '05:10:18',
   description: 'Daily chart-toppers update',
-  image: require('../../assets/images/Playlist Details - Audio Listing/Image 50.png'),
+  image: require('../assets/images/Playlist Details - Audio Listing/Image 50.png'),
 };
 
 const songs = [
@@ -24,7 +25,7 @@ const songs = [
     artist: 'Jessica Gonzalez',
     views: '2,1M',
     duration: '3:36',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 51.png'),
+    image: require('../assets/images/Playlist Details - Audio Listing/Image 51.png'),
   },
   {
     id: 2,
@@ -32,7 +33,7 @@ const songs = [
     artist: 'Anthony Taylor',
     views: '68M',
     duration: '03:35',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 52.png'),
+    image: require('../assets/images/Playlist Details - Audio Listing/Image 52.png'),
   },
   {
     id: 3,
@@ -40,7 +41,7 @@ const songs = [
     artist: 'Brian Bailey',
     views: '93M',
     duration: '04:39',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 53.png'),
+    image: require('../assets/images/Playlist Details - Audio Listing/Image 53.png'),
   },
   {
     id: 4,
@@ -48,7 +49,7 @@ const songs = [
     artist: 'Anthony Taylor',
     views: '9M',
     duration: '07:48',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 54.png'),
+    image: require('../assets/images/Playlist Details - Audio Listing/Image 54.png'),
   },
   {
     id: 5,
@@ -56,7 +57,7 @@ const songs = [
     artist: 'Pedro Moreno',
     views: '23M',
     duration: '3:36',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 55.png'),
+    image: require('../assets/images/Playlist Details - Audio Listing/Image 55.png'),
   },
   {
     id: 6,
@@ -64,20 +65,22 @@ const songs = [
     artist: 'Elena Jimenez',
     views: '10M',
     duration: '06:22',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 56.png'),
+    image: require('../assets/images/Playlist Details - Audio Listing/Image 56.png'),
   },
 ];
 
 export default function PlaylistDetails() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.topBar}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <TouchableOpacity>
-          <Ionicons name="cast-outline" size={24} color="#000" />
+          <Ionicons name="search-outline" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
@@ -121,7 +124,17 @@ export default function PlaylistDetails() {
         data={songs}
         contentContainerStyle={styles.listContent}
         renderItem={({ item, index }) => (
-          <TouchableOpacity style={styles.songItem}>
+          <TouchableOpacity 
+            style={styles.songItem}
+            onPress={() => router.push({
+              pathname: '/play-audio',
+              params: {
+                title: item.title,
+                artist: item.artist,
+                duration: item.duration,
+              }
+            })}
+          >
             <Image source={item.image} style={styles.songImage} />
             <View style={styles.songInfo}>
               <Text style={styles.songTitle}>{item.title}</Text>
