@@ -1,8 +1,9 @@
 type Artist = {
-    id: number;
-    name: string;
-    flowers: number;
-    image: string;
-}
+  id: string;
+  name: string;
+  image: any;
+  followers: number;
+  type: 'artist';
+};
 
 export default Artist;

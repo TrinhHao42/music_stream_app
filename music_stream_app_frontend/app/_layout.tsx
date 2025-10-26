@@ -12,7 +12,9 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SafeAreaProvider>
         <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack
+            screenOptions={{ headerShown: false }}
+          >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="launch" options={{ headerShown: false }} />
             <Stack.Screen name="playlist-details" options={{ headerShown: false }} />
