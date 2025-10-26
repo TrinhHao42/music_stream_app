@@ -16,6 +16,10 @@ export default function RootLayout() {
             screenOptions={{ headerShown: false }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="launch" options={{ headerShown: false }} />
+            <Stack.Screen name="playlist-details" options={{ headerShown: false }} />
+            <Stack.Screen name="play-audio" options={{ headerShown: false }} />
+            <Stack.Screen name="artist-profile" options={{ headerShown: false }} />
           </Stack>
         </SafeAreaView>
       </SafeAreaProvider>
