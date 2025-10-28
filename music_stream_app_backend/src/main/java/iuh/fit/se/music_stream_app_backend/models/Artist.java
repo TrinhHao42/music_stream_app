@@ -1,6 +1,7 @@
 package iuh.fit.se.music_stream_app_backend.models;
 
 import lombok.*;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -15,10 +16,10 @@ import java.util.List;
 @Builder
 public class Artist {
     @Id
-    private String artistId;
+    private ObjectId artistId;
 
     private String artistName;
-    private LocalDate birthdate;
+    private LocalDate birthday;
     private boolean gender;
 
     @DBRef
@@ -28,5 +29,5 @@ public class Artist {
     private List<User> followers;
 
     @DBRef
-    private List<Account> accounts;
+    private Account account;
 }

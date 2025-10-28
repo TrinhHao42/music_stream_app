@@ -1,6 +1,7 @@
 package iuh.fit.se.music_stream_app_backend;
 
 import iuh.fit.se.music_stream_app_backend.models.*;
+import iuh.fit.se.music_stream_app_backend.models.enums.Type;
 import iuh.fit.se.music_stream_app_backend.repository.AccountRepository;
 import iuh.fit.se.music_stream_app_backend.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -28,10 +29,9 @@ public class TestInsert {
 
             for (int i = 1; i <= 10; i++) {
                 Account acc = Account.builder()
-                        .accountId("acc" + i)
                         .email("user" + i + "@example.com")
                         .password("123456")
-                        .type(i % 2 == 0 ? "PREMIUM" : "STANDARD")
+                        .type(Type.valueOf(i % 2 == 0 ? "PREMIUM" : "STANDARD"))
                         .build();
                 accounts.add(acc);
             }
