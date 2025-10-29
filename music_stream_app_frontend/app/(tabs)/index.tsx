@@ -1,15 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -39,6 +32,9 @@ export default function HomeScreen() {
             <Image 
               source={avatarSource}
               style={styles.avatar}
+              contentFit="cover"
+              transition={0}
+              cachePolicy="memory-disk"
             />
           </TouchableOpacity>
         </View>
@@ -67,6 +63,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 36.png')} 
                 style={styles.cardImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <View style={styles.cardOverlay}>
                 <Text style={styles.cardTitle}>Reflection</Text>
@@ -77,6 +76,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 39.png')} 
                 style={styles.cardImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <View style={styles.cardOverlay}>
                 <Text style={styles.cardTitle}>In The Stars</Text>
@@ -122,6 +124,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 40.png')} 
                 style={styles.albumImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <Text style={styles.albumTitle}>ME</Text>
               <Text style={styles.albumArtist}>Jessica Gonzalez</Text>
@@ -130,6 +135,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 41.png')} 
                 style={styles.albumImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <Text style={styles.albumTitle}>Magna nost</Text>
               <Text style={styles.albumArtist}>Brian Thomas</Text>
@@ -138,6 +146,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 45.png')} 
                 style={styles.albumImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <Text style={styles.albumTitle}>Magna n</Text>
               <Text style={styles.albumArtist}>Christoph</Text>
@@ -162,6 +173,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 46.png')} 
                 style={styles.artistImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <Text style={styles.artistName}>Jennifer Wilson</Text>
               <TouchableOpacity style={styles.followButton}>
@@ -178,6 +192,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Image 47.png')} 
                 style={styles.artistImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <Text style={styles.artistName}>Elizabeth Hall</Text>
               <TouchableOpacity style={styles.followButton}>
@@ -194,6 +211,9 @@ export default function HomeScreen() {
               <Image 
                 source={require('../../assets/images/Home - Audio Listing/Avatar 3.png')} 
                 style={styles.artistImage}
+                contentFit="cover"
+                transition={0}
+                cachePolicy="memory-disk"
               />
               <Text style={styles.artistName}>Anthony</Text>
               <TouchableOpacity style={styles.followButton}>

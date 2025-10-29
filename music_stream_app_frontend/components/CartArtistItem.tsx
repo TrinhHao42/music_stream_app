@@ -1,13 +1,14 @@
 import formatCompactNumber from '@/utils/FormatCompactNumber';
 import Feather from '@expo/vector-icons/Feather';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image } from "expo-image";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = { name: string; image: any; followers?: number; onFollow?: () => void };
 
 const LibraryArtistItem = ({ name, image, followers, onFollow }: Props) => {
     return (
         <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-            <Image source={image} style={styles.img} />
+            <Image source={image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.title}>{name}</Text>
                 {followers ?
