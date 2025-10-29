@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 public class Playlist {
     @Id
-    private ObjectId playlistId;
+    private String playlistId;
 
     private String playlistName;
 

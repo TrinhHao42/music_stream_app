@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class User {
     @Id
-    private ObjectId userId;
+    private String userId;
 
     private String userName;
     private boolean gender;
