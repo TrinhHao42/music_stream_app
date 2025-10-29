@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 public class Album {
     @Id
-    private ObjectId albumId;
+    private String albumId;
 
     private String albumName;
     private LocalDate release;

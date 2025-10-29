@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class Artist {
     @Id
-    private ObjectId artistId;
+    private String artistId;
 
     private String artistName;
     private LocalDate birthday;

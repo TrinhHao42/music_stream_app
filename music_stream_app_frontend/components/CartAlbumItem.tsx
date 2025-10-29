@@ -1,6 +1,7 @@
 import Entypo from '@expo/vector-icons/Entypo';
+import { Image } from "expo-image";
 import { useNavigation } from 'expo-router';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = { title: string; artistName: string; numOfSongs: number; image: any };
 
@@ -12,7 +13,7 @@ const LibraryAlbumItem = ({ title, artistName, numOfSongs, image }: Props) => {
             style={styles.card} activeOpacity={0.8}
             onPress={() => navigation.navigate('playlistdetails' as never)}
         >
-            <Image source={image} style={styles.img} />
+            <Image source={image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.title}>{title}</Text>
                 <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', marginTop: 4 }}>

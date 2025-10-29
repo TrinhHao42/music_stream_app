@@ -58,9 +58,21 @@ const HomeLayout = () => {
                 }}
             />
             <Tabs.Screen
+                name="user/index"
+                options={{
+                    href: null,
+                }}
+            />
+            <Tabs.Screen
                 name="artist-profile"
                 options={{
                     href: null, // Ẩn khỏi bottom navigation
+                }}
+            />
+            <Tabs.Screen
+                name="playlist-details"
+                options={{
+                    href: null,
                 }}
             />
         </Tabs>

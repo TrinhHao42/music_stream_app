@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class Song {
     @Id
-    private ObjectId songId;
+    private String songId;
 
     private String title;
     private LocalDate release;

@@ -1,15 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-    FlatList,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ArtistProfile() {
   const router = useRouter();
@@ -86,7 +79,7 @@ export default function ArtistProfile() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Artist Info */}
         <View style={styles.artistInfo}>
-          <Image source={artistData.avatar} style={styles.avatar} />
+          <Image source={artistData.avatar} style={styles.avatar} contentFit="cover" transition={0} cachePolicy="memory-disk" />
           <Text style={styles.artistName}>{artistData.name}</Text>
           <Text style={styles.followers}>{artistData.followers} Followers</Text>
 
@@ -133,7 +126,7 @@ export default function ArtistProfile() {
                   }
                 })}
               >
-                <Image source={item.image} style={styles.songImage} />
+                <Image source={item.image} style={styles.songImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
                 <View style={styles.songInfo}>
                   <Text style={styles.songTitle}>{item.title}</Text>
                   <Text style={styles.songArtist}>{artistData.name}</Text>
@@ -164,7 +157,7 @@ export default function ArtistProfile() {
             data={albums}
             renderItem={({ item }) => (
               <TouchableOpacity style={styles.albumCard}>
-                <Image source={item.image} style={styles.albumImage} />
+                <Image source={item.image} style={styles.albumImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
                 <Text style={styles.albumTitle}>{item.title}</Text>
                 <Text style={styles.albumArtist}>{item.artist}</Text>
               </TouchableOpacity>
@@ -179,7 +172,10 @@ export default function ArtistProfile() {
           <Text style={styles.sectionTitle}>About</Text>
           <Image 
             source={require('../assets/images/Artist Profile/Image 77.png')} 
-            style={styles.aboutImage} 
+            style={styles.aboutImage}
+            contentFit="cover" 
+            transition={0}
+            cachePolicy="memory-disk"
           />
           <Text style={styles.aboutText}>
             Ryan Young is a talented musician known for his unique blend of pop and electronic music. 
@@ -206,7 +202,7 @@ export default function ArtistProfile() {
                   params: { name: item.artist }
                 })}
               >
-                <Image source={item.image} style={styles.relatedImage} />
+                <Image source={item.image} style={styles.relatedImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
                 <Text style={styles.relatedTitle}>{item.name}</Text>
                 <Text style={styles.relatedArtist}>{item.artist}</Text>
               </TouchableOpacity>

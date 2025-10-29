@@ -17,29 +17,29 @@ import java.util.List;
 
 @SpringBootApplication
 public class TestInsert {
-    public static void main(String[] args) {
-        SpringApplication.run(TestInsert.class, args);
-    }
-
-    @Bean
-    CommandLineRunner run(AccountRepository accountRepository) {
-        return args -> {
-            // Tạo danh sách 10 account mẫu
-            List<Account> accounts = new ArrayList<>();
-
-            for (int i = 1; i <= 10; i++) {
-                Account acc = Account.builder()
-                        .email("user" + i + "@example.com")
-                        .password("123456")
-                        .type(Type.valueOf(i % 2 == 0 ? "PREMIUM" : "STANDARD"))
-                        .build();
-                accounts.add(acc);
-            }
-
-            accountRepository.saveAll(accounts);
-            System.out.println("✅ Đã thêm " + accounts.size() + " accounts vào MongoDB");
-        };
-    }
-
+//    public static void main(String[] args) {
+//        SpringApplication.run(TestInsert.class, args);
+//    }
+//
+//    @Bean
+//    CommandLineRunner run(AccountRepository accountRepository) {
+//        return args -> {
+//            // Tạo danh sách 10 account mẫu
+//            List<Account> accounts = new ArrayList<>();
+//
+//            for (int i = 1; i <= 10; i++) {
+//                Account acc = Account.builder()
+//                        .email("user" + i + "@example.com")
+//                        .password("123456")
+//                        .type(Type.valueOf(i % 2 == 0 ? "PREMIUM" : "STANDARD"))
+//                        .build();
+//                accounts.add(acc);
+//            }
+//
+//            accountRepository.saveAll(accounts);
+//            System.out.println("✅ Đã thêm " + accounts.size() + " accounts vào MongoDB");
+//        };
+//    }
+//
 
 }
