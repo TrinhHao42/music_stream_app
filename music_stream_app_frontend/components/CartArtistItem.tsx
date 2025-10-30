@@ -1,13 +1,19 @@
 import formatCompactNumber from '@/utils/FormatCompactNumber';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from "expo-image";
+import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = { name: string; image: any; followers?: number; onFollow?: () => void };
 
 const LibraryArtistItem = ({ name, image, followers, onFollow }: Props) => {
+    const router = useRouter();
     return (
-        <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+        <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.8}
+            onPress={() => router.push('/artist-profile' as never)}
+        >
             <Image source={image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.title}>{name}</Text>
@@ -18,7 +24,7 @@ const LibraryArtistItem = ({ name, image, followers, onFollow }: Props) => {
                     </Text> : null}
             </View>
             <TouchableOpacity
-                style={{backgroundColor: 'black', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20}}
+                style={{ backgroundColor: 'black', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
                 activeOpacity={0.8}
                 onPress={onFollow}
             >
