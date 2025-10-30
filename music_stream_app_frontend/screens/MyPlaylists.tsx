@@ -1,5 +1,6 @@
 import Entypo from '@expo/vector-icons/Entypo';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const playlists = [
   { id: '1', title: 'Ipsum sit nulla', artist: "Ashley Scott", songs: 12, image: require('../../assets/images/My Playlists/Image 110.png') },
@@ -16,7 +17,7 @@ export default function MyPlaylists() {
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.row} activeOpacity={0.8}>
-            <Image source={item.image} style={styles.img} />
+            <Image source={item.image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.title}>{item.title}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>

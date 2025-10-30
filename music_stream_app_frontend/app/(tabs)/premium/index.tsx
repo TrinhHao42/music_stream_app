@@ -1,5 +1,5 @@
 import Entypo from '@expo/vector-icons/Entypo';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Animated, Dimensions, FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RadioButton } from 'react-native-paper';
@@ -7,7 +7,7 @@ import { RadioButton } from 'react-native-paper';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
-const SubscriptionPlans = () => {
+const PremiumScreen = () => {
 
 
   const cards = [
@@ -20,7 +20,7 @@ const SubscriptionPlans = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
 
-  const navigation = useNavigation();
+  const router = useRouter();
 
   const handleScrollEnd = (event: any) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / (CARD_WIDTH));
@@ -39,7 +39,7 @@ const SubscriptionPlans = () => {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/SubscriptionPlans/Image116.png')}
+      source={require('@/assets/images/SubscriptionPlans/Image116.png')}
       style={styles.background}
     >
       <Text style={styles.header}>Unlimited{'\n'}Music selections</Text>
@@ -49,7 +49,6 @@ const SubscriptionPlans = () => {
         data={cards}
         horizontal
         showsHorizontalScrollIndicator={false}
-        decelerationRate="fast"
         onMomentumScrollEnd={handleScrollEnd}
         contentContainerStyle={{ paddingHorizontal: (width - CARD_WIDTH) / 2 }}
         onScroll={Animated.event(
@@ -115,7 +114,7 @@ const SubscriptionPlans = () => {
       </RadioButton.Group>
 
       <TouchableOpacity
-        onPress={() => navigation.navigate('Home' as never)}
+        onPress={() => router.push('/' as never)}
       >
         <Text style={[styles.buttonText, { textAlign: 'center' }]}>Back home</Text>
       </TouchableOpacity>
@@ -139,4 +138,4 @@ const styles = StyleSheet.create({
   radioRow: { flexDirection: 'row', justifyContent: 'center', marginVertical: 20 },
 });
 
-export default SubscriptionPlans;
+export default PremiumScreen;

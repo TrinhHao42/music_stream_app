@@ -1,63 +1,82 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Entypo from '@expo/vector-icons/Entypo';
+import Feather from '@expo/vector-icons/Feather';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Tabs } from "expo-router";
 
-export default function TabLayout() {
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#195ea7ff',
-        tabBarInactiveTintColor: '#8E8E93',
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E5EA',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-        <Tabs.Screen
-          name="search"
-          options={{
-            title: 'Search',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="search-outline" size={size} color={color} />
-            ),
-          }}
-        />
-      <Tabs.Screen
-        name="feed"
-        options={{
-          title: 'Feed',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="library"
-        options={{
-          title: 'Library',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="library-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
+const HomeLayout = () => {
+    return (
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: { backgroundColor: 'white' },
+            }}
+        >
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: "Home",
+                    tabBarIcon: ({ color, size }) => (
+                        <AntDesign name="home" size={24} color="gray" />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="search/index"
+                options={{
+                    title: "Search",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="search" size={24} color="gray" />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="feed/index"
+                options={{
+                    title: "Feed",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="rss" size={24} color="gray" />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="library"
+                options={{
+                    title: "Library",
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="albums-outline" size={24} color="gray" />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="premium/index"
+                options={{
+                    title: "Premium",
+                    tabBarIcon: ({ color, size }) => (
+                        <Entypo name="popup" size={24} color="gray" />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="user/index"
+                options={{
+                    href: null,
+                }}
+            />
+            <Tabs.Screen
+                name="artist-profile"
+                options={{
+                    href: null, // Ẩn khỏi bottom navigation
+                }}
+            />
+            <Tabs.Screen
+                name="playlist-details"
+                options={{
+                    href: null,
+                }}
+            />
+        </Tabs>
+    );
 }
+
+export default HomeLayout;
