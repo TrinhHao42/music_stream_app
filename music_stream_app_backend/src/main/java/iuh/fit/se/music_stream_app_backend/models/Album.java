@@ -21,7 +21,7 @@ public class Album {
     private LocalDate release;
     private long listens;
     private long favourites;
-    private String coverUrl; // 👉 đường dẫn ảnh bìa
+    private String image; // 👉 đường dẫn ảnh bìa
 
     @DBRef
     private List<Artist> artists;

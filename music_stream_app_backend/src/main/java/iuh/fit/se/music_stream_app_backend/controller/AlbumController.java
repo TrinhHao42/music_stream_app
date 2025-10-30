@@ -1,15 +1,17 @@
 package iuh.fit.se.music_stream_app_backend.controller;
 
+import iuh.fit.se.music_stream_app_backend.models.Account;
 import iuh.fit.se.music_stream_app_backend.models.Album;
 import iuh.fit.se.music_stream_app_backend.models.Artist;
 import iuh.fit.se.music_stream_app_backend.service.AlbumService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Controller;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/albums")
@@ -35,6 +37,15 @@ public class AlbumController {
 
     @PostMapping
     public Album addAlbum(@RequestBody Album album) {
-        return albumService.AddAlbum(album);
+        return albumService.addAlbum(album);
+    }
+    @GetMapping("/{name}")
+    public List<Album> findByAlbumName(@PathVariable String name) {
+        return albumService.findAlbumByName(name);
+    }
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Album> update(@PathVariable String id, @RequestBody Album request) {
+        Optional<Album> updated = albumService.update(id, request);
+        return updated.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
