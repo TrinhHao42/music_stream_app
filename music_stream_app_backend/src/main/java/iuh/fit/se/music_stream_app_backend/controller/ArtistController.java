@@ -9,7 +9,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
-
 @RestController
 @RequestMapping("/artists")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class ArtistController {
     ArtistService artistService;
 
+    // 🟢 Lấy tất cả nghệ sĩ
     @GetMapping
     public Page<Artist> getAllArtists(
             @RequestParam(defaultValue = "0") int page,
@@ -26,12 +26,14 @@ public class ArtistController {
         return artistService.findAllArtists(pageable);
     }
 
-    @GetMapping
-    public Artist getArtistById(@RequestParam String id) {
+    // 🟢 Lấy nghệ sĩ theo ID
+    @GetMapping("/{id}")
+    public Artist getArtistById(@PathVariable String id) {
         return artistService.findArtistById(id);
     }
 
-    @GetMapping
+    // 🟢 Tìm nghệ sĩ theo tên
+    @GetMapping("/search")
     public Page<Artist> getArtistsByName(
             @RequestParam String name,
             @RequestParam(defaultValue = "0") int page,
@@ -41,6 +43,7 @@ public class ArtistController {
         return artistService.findArtistByName(name, pageable);
     }
 
+    // 🟢 Thêm nghệ sĩ mới
     @PostMapping
     public Artist addArtist(@RequestBody Artist artist) {
         return artistService.AddArtist(artist);

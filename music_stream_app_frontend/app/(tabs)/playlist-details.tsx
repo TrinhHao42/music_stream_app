@@ -1,13 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Dữ liệu mẫu
 const playlistData = {
@@ -15,7 +9,7 @@ const playlistData = {
   likes: 1234,
   duration: '05:10:18',
   description: 'Daily chart-toppers update',
-  image: require('../assets/images/Playlist Details - Audio Listing/Image 50.png'),
+  image: require('../../assets/images/Playlist Details - Audio Listing/Image 50.png'),
 };
 
 const songs = [
@@ -25,7 +19,7 @@ const songs = [
     artist: 'Jessica Gonzalez',
     views: '2,1M',
     duration: '3:36',
-    image: require('../assets/images/Playlist Details - Audio Listing/Image 51.png'),
+    image: require('../../assets/images/Playlist Details - Audio Listing/Image 51.png'),
   },
   {
     id: 2,
@@ -33,7 +27,7 @@ const songs = [
     artist: 'Anthony Taylor',
     views: '68M',
     duration: '03:35',
-    image: require('../assets/images/Playlist Details - Audio Listing/Image 52.png'),
+    image: require('../../assets/images/Playlist Details - Audio Listing/Image 52.png'),
   },
   {
     id: 3,
@@ -41,7 +35,7 @@ const songs = [
     artist: 'Brian Bailey',
     views: '93M',
     duration: '04:39',
-    image: require('../assets/images/Playlist Details - Audio Listing/Image 53.png'),
+    image: require('../../assets/images/Playlist Details - Audio Listing/Image 53.png'),
   },
   {
     id: 4,
@@ -49,7 +43,7 @@ const songs = [
     artist: 'Anthony Taylor',
     views: '9M',
     duration: '07:48',
-    image: require('../assets/images/Playlist Details - Audio Listing/Image 54.png'),
+    image: require('../../assets/images/Playlist Details - Audio Listing/Image 54.png'),
   },
   {
     id: 5,
@@ -57,7 +51,7 @@ const songs = [
     artist: 'Pedro Moreno',
     views: '23M',
     duration: '3:36',
-    image: require('../assets/images/Playlist Details - Audio Listing/Image 55.png'),
+    image: require('../../assets/images/Playlist Details - Audio Listing/Image 55.png'),
   },
   {
     id: 6,
@@ -65,7 +59,7 @@ const songs = [
     artist: 'Elena Jimenez',
     views: '10M',
     duration: '06:22',
-    image: require('../assets/images/Playlist Details - Audio Listing/Image 56.png'),
+    image: require('../../assets/images/Playlist Details - Audio Listing/Image 56.png'),
   },
 ];
 
@@ -87,7 +81,7 @@ export default function PlaylistDetails() {
       {/* Playlist Info */}
       <View style={styles.playlistInfo}>
         <View style={styles.playlistImageContainer}>
-          <Image source={playlistData.image} style={styles.playlistImage} />
+          <Image source={playlistData.image} style={styles.playlistImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
         </View>
         <View style={styles.playlistDetails}>
           <Text style={styles.playlistTitle}>{playlistData.title}</Text>
@@ -123,19 +117,12 @@ export default function PlaylistDetails() {
       <FlatList
         data={songs}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item, index }) => (
+        renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.songItem}
-            onPress={() => router.push({
-              pathname: '/play-audio',
-              params: {
-                title: item.title,
-                artist: item.artist,
-                duration: item.duration,
-              }
-            })}
+            onPress={() => router.push({ pathname: '/play-audio', params: { title: item.title, artist: item.artist, duration: item.duration } })}
           >
-            <Image source={item.image} style={styles.songImage} />
+            <Image source={item.image} style={styles.songImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={styles.songInfo}>
               <Text style={styles.songTitle}>{item.title}</Text>
               <Text style={styles.songArtist}>{item.artist}</Text>
@@ -160,135 +147,30 @@ export default function PlaylistDetails() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-  },
-  playlistInfo: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  playlistImageContainer: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  playlistImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 12,
-  },
-  playlistDetails: {
-    flex: 1,
-    marginLeft: 16,
-    justifyContent: 'center',
-  },
-  playlistTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  playlistMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  dot: {
-    fontSize: 14,
-    color: '#999',
-    marginHorizontal: 8,
-  },
-  description: {
-    fontSize: 12,
-    color: '#999',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    gap: 12,
-  },
-  actionButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 'auto',
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  songItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  songImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-  },
-  songInfo: {
-    flex: 1,
-  },
-  songTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
-  },
-  songArtist: {
-    fontSize: 14,
-    color: '#666',
-  },
-  songMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  playInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  playText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  songDuration: {
-    fontSize: 12,
-    color: '#666',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 16 },
+  playlistInfo: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 20 },
+  playlistImageContainer: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  playlistImage: { width: 150, height: 150, borderRadius: 12 },
+  playlistDetails: { flex: 1, marginLeft: 16, justifyContent: 'center' },
+  playlistTitle: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 8 },
+  playlistMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: 14, color: '#666' },
+  dot: { fontSize: 14, color: '#999', marginHorizontal: 8 },
+  description: { fontSize: 12, color: '#999' },
+  actionButtons: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16, gap: 12 },
+  actionButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  playButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginLeft: 'auto' },
+  listContent: { paddingBottom: 100 },
+  songItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
+  songImage: { width: 56, height: 56, borderRadius: 8 },
+  songInfo: { flex: 1 },
+  songTitle: { fontSize: 16, fontWeight: '600', color: '#000', marginBottom: 4 },
+  songArtist: { fontSize: 14, color: '#666' },
+  songMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  playInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  playText: { fontSize: 12, color: '#666' },
+  songDuration: { fontSize: 12, color: '#666' },
 });
+

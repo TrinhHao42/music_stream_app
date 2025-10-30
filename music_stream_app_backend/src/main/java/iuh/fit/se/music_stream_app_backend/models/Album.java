@@ -1,6 +1,7 @@
 package iuh.fit.se.music_stream_app_backend.models;
 
 import lombok.*;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -20,6 +21,7 @@ public class Album {
     private LocalDate release;
     private long listens;
     private long favourites;
+    private String coverUrl; // 👉 đường dẫn ảnh bìa
 
     @DBRef
     private List<Artist> artists;
