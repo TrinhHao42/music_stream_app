@@ -24,7 +24,7 @@ public class Song {
     private long listens;
     private long likes;
     private String audioUrl; // 👉 đường dẫn file nhạc (URL hoặc path)
-    private String coverUrl; // 👉 đường dẫn ảnh bìa
+    private String image; // 👉 đường dẫn ảnh bìa
 
     @DBRef
     private Album album;

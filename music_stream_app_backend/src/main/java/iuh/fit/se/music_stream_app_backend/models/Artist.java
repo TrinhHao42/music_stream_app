@@ -22,12 +22,12 @@ public class Artist {
     private LocalDate birthday;
     private boolean gender;
 
+
     @DBRef
     private List<Album> albums;
 
-    @DBRef
-    private List<User> followers;
 
-    @DBRef
-    private Account account;
+    private long followers;
+
+
 }

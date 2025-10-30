@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface AlbumRepository extends MongoRepository<Album, String> {
     List<Album> getAlbumsByArtists(List<Artist> artists);
+    List<Album> findByAlbumNameRegex(String regex);
 }
