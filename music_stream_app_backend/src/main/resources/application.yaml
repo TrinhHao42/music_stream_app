@@ -14,3 +14,9 @@ spring:
 
 # Ẩn _class
 spring.data.mongodb.mapping.type-key: null
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET}
+  accessTokenExpiration: 86400000  # 24 hours in milliseconds
+  refreshTokenExpiration: 604800000  # 7 days in milliseconds

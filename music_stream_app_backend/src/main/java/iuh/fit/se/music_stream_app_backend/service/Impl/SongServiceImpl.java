@@ -1,5 +1,6 @@
 package iuh.fit.se.music_stream_app_backend.service.Impl;
 
+import iuh.fit.se.music_stream_app_backend.exception.ResourceNotFoundException;
 import iuh.fit.se.music_stream_app_backend.models.Song;
 import iuh.fit.se.music_stream_app_backend.repository.SongRepository;
 import iuh.fit.se.music_stream_app_backend.service.SongService;
@@ -34,7 +35,8 @@ public class SongServiceImpl implements SongService {
 
     @Override
     public Song findSongById(String id) {
-        return songRepository.findById(id).orElse(null);
+        return songRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Song", "id", id));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package iuh.fit.se.music_stream_app_backend.service.Impl;
 
+import iuh.fit.se.music_stream_app_backend.exception.ResourceNotFoundException;
 import iuh.fit.se.music_stream_app_backend.models.Playlist;
 import iuh.fit.se.music_stream_app_backend.repository.PlaylistRepository;
 import lombok.AccessLevel;
@@ -27,11 +28,17 @@ public class PlaylistServiceImpl implements iuh.fit.se.music_stream_app_backend.
 
     @Override
     public Playlist UpdatePlaylist(Playlist playlist) {
+        if (!playlistRepository.existsById(playlist.getPlaylistId())) {
+            throw new ResourceNotFoundException("Playlist", "id", playlist.getPlaylistId());
+        }
         return playlistRepository.save(playlist);
     }
 
     @Override
     public void DropPlaylist(String playlistId) {
+        if (!playlistRepository.existsById(playlistId)) {
+            throw new ResourceNotFoundException("Playlist", "id", playlistId);
+        }
         playlistRepository.deleteById(playlistId);
     }
 }

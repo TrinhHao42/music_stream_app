@@ -13,12 +13,20 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @Builder
 public class Account {
     @Id
-    @Field("_id")
     private String accountId;
 
+    @Field("avatar_url")
     private String avatarUrl;
+
+    @Field("email")
     private String email;
+
+    @Field("password")
     private String password;
+
+    @Field("type")
     private Type type;
+
+    @Field("user_id")
     private String userId; // Lưu reference bằng ID thay vì @DBRef
 }
