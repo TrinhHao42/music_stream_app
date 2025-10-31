@@ -1,7 +1,6 @@
 package iuh.fit.se.music_stream_app_backend.controller;
 
 import iuh.fit.se.music_stream_app_backend.models.Playlist;
-import iuh.fit.se.music_stream_app_backend.models.User;
 import iuh.fit.se.music_stream_app_backend.service.PlaylistService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +27,7 @@ public class PlaylistController {
 
     @GetMapping("/user/{userId}")
     public List<Playlist> getPlaylistsByUser(@PathVariable String userId) {
-        User user = User.builder().userId(userId).build();
-        return playlistService.getPlayListByUser(user);
+        return playlistService.getPlayListByUser(userId);
     }
 
     @PutMapping("/{id}")

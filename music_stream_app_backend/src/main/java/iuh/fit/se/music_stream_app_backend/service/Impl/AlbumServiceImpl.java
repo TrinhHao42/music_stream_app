@@ -1,7 +1,6 @@
 package iuh.fit.se.music_stream_app_backend.service.Impl;
 
 import iuh.fit.se.music_stream_app_backend.models.Album;
-import iuh.fit.se.music_stream_app_backend.models.Artist;
 import iuh.fit.se.music_stream_app_backend.repository.AlbumRepository;
 import iuh.fit.se.music_stream_app_backend.service.AlbumService;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +32,8 @@ public class AlbumServiceImpl implements AlbumService {
     }
 
     @Override
-    public List<Album> getAlbumsByArtist(List<Artist> artists) {
-        return albumRepository.getAlbumsByArtists(artists);
+    public List<Album> getAlbumsByArtist(List<String> artistNames) {
+        return albumRepository.getAlbumsByArtistIn(artistNames);
     }
 
     @Override
@@ -51,6 +50,7 @@ public class AlbumServiceImpl implements AlbumService {
             existing.setListens(album.getListens());
             existing.setFavourites(album.getFavourites());
             existing.setRelease(album.getRelease());
+            existing.setSongs(album.getSongs());
             return albumRepository.save(existing);
         });
     }
@@ -63,6 +63,4 @@ public class AlbumServiceImpl implements AlbumService {
         }
         return false;
     }
-
-
 }
