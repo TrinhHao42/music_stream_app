@@ -13,4 +13,5 @@ public interface AlbumService {
     List<Album> getAlbumsByArtist(List<Artist> artists);
     List<Album> findAlbumByName(String name);
    Optional<Album> update (String id, Album album);
+   boolean deleteById(String id);
 }

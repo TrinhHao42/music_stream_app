@@ -10,6 +10,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,9 +37,9 @@ public class SongController {
         return songService.findSongById(id);
     }
 
-    @GetMapping("/{name}")
+    @GetMapping("/search")
     public Page<Song> getSongsByName(
-            @PathVariable String name,
+            @RequestParam String name,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
@@ -65,4 +66,16 @@ public class SongController {
     public Song addSong(@RequestBody Song song) {
         return songService.AddSong(song);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Object> deleteSong(@PathVariable String id) {
+        boolean deleted = songService.deleteById(id);
+        if (deleted) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+
+        }
+    }
+
 }

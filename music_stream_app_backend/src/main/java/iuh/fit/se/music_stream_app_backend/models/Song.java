@@ -5,6 +5,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,7 @@ public class Song {
     private String songId;
 
     private String title;
+    @DateTimeFormat(pattern = "dd/MM/yyyy")
     private LocalDate release;
     private double duration;
     private long listens;

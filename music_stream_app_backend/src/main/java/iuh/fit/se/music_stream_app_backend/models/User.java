@@ -23,9 +23,6 @@ public class User {
     private LocalDate birthday;
 
     @DBRef
-    private Account account;
-
-    @DBRef
     private List<Playlist> playlists;
 
     @DBRef

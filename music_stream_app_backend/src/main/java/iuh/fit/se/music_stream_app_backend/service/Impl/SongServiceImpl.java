@@ -49,4 +49,13 @@ public class SongServiceImpl implements SongService {
     public Page<Song> getSongsByName(String name, Pageable pageable) {
         return songRepository.getSongsByTitleContains(name, pageable);
     }
+
+    @Override
+    public boolean deleteById(String id) {
+        if (songRepository.existsById(id)) {
+            songRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
 }
