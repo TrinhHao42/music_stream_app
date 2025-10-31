@@ -1,7 +1,6 @@
 package iuh.fit.se.music_stream_app_backend.service.Impl;
 
 import iuh.fit.se.music_stream_app_backend.models.Playlist;
-import iuh.fit.se.music_stream_app_backend.models.User;
 import iuh.fit.se.music_stream_app_backend.repository.PlaylistRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +21,8 @@ public class PlaylistServiceImpl implements iuh.fit.se.music_stream_app_backend.
     }
 
     @Override
-    public List<Playlist> getPlayListByUser(User user) {
-        return playlistRepository.getPlaylistsByUser(user);
+    public List<Playlist> getPlayListByUser(String userId) {
+        return playlistRepository.getPlaylistsByUserId(userId);
     }
 
     @Override

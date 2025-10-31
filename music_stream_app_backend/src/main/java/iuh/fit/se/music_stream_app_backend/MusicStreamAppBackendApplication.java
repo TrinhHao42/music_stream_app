@@ -15,18 +15,5 @@ public class MusicStreamAppBackendApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MusicStreamAppBackendApplication.class, args);
-        System.out.println("Music Stream App Backend is running...");
     }
-//    @Bean
-//    public MongoCustomConversions customConversions() {
-//        Converter<String, LocalDate> stringToLocalDateConverter = new Converter<>() {
-//            @Override
-//            public LocalDate convert(String source) {
-//                // ép theo định dạng dd/MM/yyyy
-//                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-//                return LocalDate.parse(source, formatter);
-//            }
-//        };
-//        return new MongoCustomConversions(Collections.singletonList(stringToLocalDateConverter));
-//    }
 }

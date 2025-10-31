@@ -3,8 +3,8 @@ package iuh.fit.se.music_stream_app_backend.models;
 import iuh.fit.se.music_stream_app_backend.models.enums.Type;
 import lombok.*;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "accounts")
 @Data
@@ -13,13 +13,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder
 public class Account {
     @Id
+    @Field("_id")
     private String accountId;
+
     private String avatarUrl;
     private String email;
     private String password;
     private Type type;
-
-    @DBRef
-    private User user;
-
+    private String userId; // Lưu reference bằng ID thay vì @DBRef
 }
