@@ -1,8 +1,8 @@
 spring:
   data:
     mongodb:
-      uri: mongodb+srv://musicAppMobileAdmin:sapassword@cluster0.b9md2md.mongodb.net/music_stream_app
-      database: musicAppMobile
+      uri: mongodb+srv://music_stream_app_admin:sapassword@cluster0.b9md2md.mongodb.net/
+      database: music_stream_app
       field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
       # ⚠️ Thêm dòng này để tắt _class
       mapping:

@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import java.net.URI;
 
 import java.util.List;
 
@@ -19,22 +21,27 @@ public class PlaylistController {
     PlaylistService playlistService;
 
     @PostMapping
-    public Playlist createPlaylist(Playlist playlist) {
-        return playlistService.AddPlaylist(playlist);
+    public ResponseEntity<Playlist> createPlaylist(@RequestBody Playlist playlist) {
+        Playlist created = playlistService.AddPlaylist(playlist);
+        return ResponseEntity.created(URI.create("/playlists/" + created.getPlaylistId())).body(created);
     }
 
-    @GetMapping("/user")
-    public List<Playlist> getPlaylistsByUser(User user) {
+    @GetMapping("/user/{userId}")
+    public List<Playlist> getPlaylistsByUser(@PathVariable String userId) {
+        User user = User.builder().userId(userId).build();
         return playlistService.getPlayListByUser(user);
     }
 
-    @PostMapping("/update")
-    public Playlist updatePlaylist(Playlist playlist) {
-        return playlistService.UpdatePlaylist(playlist);
+    @PutMapping("/{id}")
+    public ResponseEntity<Playlist> updatePlaylist(@PathVariable String id, @RequestBody Playlist playlist) {
+        playlist.setPlaylistId(id);
+        Playlist updated = playlistService.UpdatePlaylist(playlist);
+        return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping("/delete")
-    public void deletePlaylist(String playlistId) {
-        playlistService.DropPlaylist(playlistId);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePlaylist(@PathVariable String id) {
+        playlistService.DropPlaylist(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,0 +1,174 @@
+# Hướng dẫn sử dụng RESTful API - User
+
+Base URL: http://localhost:8080
+
+I. Mô tả model User (JSON)
+- userId: string (tự sinh bởi DB khi tạo)
+- userName: string
+- gender: boolean (true = nam, false = nữ)
+- birthday: string (ISO-8601, ví dụ: 2000-01-31)
+- account: object hoặc id (DBRef) — nếu chưa dùng, có thể bỏ qua
+- playlists, followList, likeList, favouriteAlbums: mảng DBRef — có thể bỏ qua khi tạo/cập nhật
+
+Ví dụ JSON tối thiểu khi tạo/cập nhật:
+{
+  "userName": "Nguyen Van A",
+  "gender": true,
+  "birthday": "2000-01-31"
+}
+
+II. Endpoints User
+1) Lấy danh sách User
+- Method: GET
+- URL: /users
+- Curl:
+  curl -X GET "http://localhost:8080/users"
+
+2) Lấy User theo id
+- Method: GET
+- URL: /users/{id}
+- Curl:
+  curl -X GET "http://localhost:8080/users/USER_ID"
+
+3) Tạo User mới
+- Method: POST
+- URL: /users
+- Header: Content-Type: application/json
+- Body: JSON User (xem ví dụ phía trên)
+- Curl:
+  curl -X POST "http://localhost:8080/users" \
+       -H "Content-Type: application/json" \
+       -d '{
+             "userName": "Nguyen Van A",
+             "gender": true,
+             "birthday": "2000-01-31"
+           }'
+
+4) Cập nhật User
+- Method: PUT
+- URL: /users/{id}
+- Header: Content-Type: application/json
+- Body: JSON User
+- Curl:
+  curl -X PUT "http://localhost:8080/users/USER_ID" \
+       -H "Content-Type: application/json" \
+       -d '{
+             "userName": "Nguyen Van A (updated)",
+             "gender": true,
+             "birthday": "2000-01-31"
+           }'
+
+5) Xóa User
+- Method: DELETE
+- URL: /users/{id}
+- Curl:
+  curl -X DELETE "http://localhost:8080/users/USER_ID"
+
+III. Mã phản hồi (HTTP Status)
+- 200 OK: Thành công (GET/PUT)
+- 201 Created: Tạo mới thành công (POST)
+- 204 No Content: Xóa thành công (DELETE)
+- 404 Not Found: Không tìm thấy tài nguyên theo id
+- 400 Bad Request: Dữ liệu đầu vào không hợp lệ (nếu có validate bổ sung)
+
+IV. Lưu ý
+- Định dạng ngày: YYYY-MM-DD
+- Nếu tích hợp quan hệ (account/playlists/...), cần gửi đúng cấu trúc mà service hỗ trợ (hiện tại có thể bỏ qua để đơn giản CRUD cơ bản).
+
+
+V. Endpoints Account
+1) GET /accounts
+  curl -X GET "http://localhost:8080/accounts"
+2) GET /accounts/{id}
+  curl -X GET "http://localhost:8080/accounts/ACCOUNT_ID"
+3) GET /accounts/search?email={email}
+  curl -X GET "http://localhost:8080/accounts/search?email=test@example.com"
+4) POST /accounts
+  curl -X POST "http://localhost:8080/accounts" \
+       -H "Content-Type: application/json" \
+       -d '{"email":"test@example.com","password":"secret"}'
+5) PUT /accounts/{id}
+  curl -X PUT "http://localhost:8080/accounts/ACCOUNT_ID" \
+       -H "Content-Type: application/json" \
+       -d '{"avatarUrl":"https://..."}'
+6) DELETE /accounts/{id}
+  curl -X DELETE "http://localhost:8080/accounts/ACCOUNT_ID"
+
+
+VI. Endpoints Artist
+1) GET /artists?page=0&size=10
+  curl -X GET "http://localhost:8080/artists?page=0&size=10"
+2) GET /artists/{id}
+  curl -X GET "http://localhost:8080/artists/ARTIST_ID"
+3) GET /artists/search?name={name}&page=0&size=10
+  curl -X GET "http://localhost:8080/artists/search?name=Son%20Tung&page=0&size=10"
+4) POST /artists
+  curl -X POST "http://localhost:8080/artists" \
+       -H "Content-Type: application/json" \
+       -d '{"artistName":"New Artist","gender":true,"birthday":"1995-01-01"}'
+
+Ghi chú: Artist hiện CHƯA có API update/delete.
+
+
+VII. Endpoints Album
+1) GET /albums
+  curl -X GET "http://localhost:8080/albums"
+2) GET /albums/{id}
+  curl -X GET "http://localhost:8080/albums/ALBUM_ID"
+3) GET /albums/search?name={name}
+  curl -X GET "http://localhost:8080/albums/search?name=Love%20Song"
+4) POST /albums (tạo album)
+  curl -X POST "http://localhost:8080/albums" \
+       -H "Content-Type: application/json" \
+       -d '{"albumName":"Best Of","release":"2024-01-01"}'
+5) POST /albums/artist (lấy album theo danh sách nghệ sĩ)
+  curl -X POST "http://localhost:8080/albums/artist" \
+       -H "Content-Type: application/json" \
+       -d '[{"artistId":"ARTIST_ID_1"},{"artistId":"ARTIST_ID_2"}]'
+6) PUT /albums/update/{id}
+  curl -X PUT "http://localhost:8080/albums/update/ALBUM_ID" \
+       -H "Content-Type: application/json" \
+       -d '{"albumName":"Best Of - Updated"}'
+7) DELETE /albums/{id}
+    curl -X DELETE "http://localhost:8080/albums/ALBUM_ID"
+
+
+
+VIII. Endpoints Song
+1) GET /songs?page=0&size=10
+  curl -X GET "http://localhost:8080/songs?page=0&size=10"
+2) GET /songs/{id}
+  curl -X GET "http://localhost:8080/songs/SONG_ID"
+3) GET /songs/search?name={name}&page=0&size=10
+  curl -X GET "http://localhost:8080/songs/search?name=Hello&page=0&size=10"
+4) POST /songs (tạo bài hát)
+  curl -X POST "http://localhost:8080/songs" \
+       -H "Content-Type: application/json" \
+       -d '{"title":"New Song","duration":210}'
+5) POST /songs/artist (tìm theo danh sách nghệ sĩ, có phân trang)
+  curl -X POST "http://localhost:8080/songs/artist?page=0&size=10" \
+       -H "Content-Type: application/json" \
+       -d '[{"artistId":"ARTIST_ID_1"}]'
+6) POST /songs/album (lấy theo album)
+  curl -X POST "http://localhost:8080/songs/album" \
+       -H "Content-Type: application/json" \
+       -d '{"albumId":"ALBUM_ID"}'
+7) DELETE /songs/{id}
+  curl -X DELETE "http://localhost:8080/songs/SONG_ID"
+
+Ghi chú: Song hiện CHƯA có API update
+
+
+IX. Endpoints Playlist
+1) POST /playlists (tạo playlist)
+  curl -X POST "http://localhost:8080/playlists" \
+       -H "Content-Type: application/json" \
+       -d '{"playlistName":"My List"}'
+2) GET /playlists/user/{userId} (lấy playlist theo user)
+  curl -X GET "http://localhost:8080/playlists/user/USER_ID"
+3) PUT /playlists/{id} (cập nhật playlist)
+  curl -X PUT "http://localhost:8080/playlists/PLAYLIST_ID" \
+       -H "Content-Type: application/json" \
+       -d '{"playlistName":"New Name"}'
+4) DELETE /playlists/{id}
+  curl -X DELETE "http://localhost:8080/playlists/PLAYLIST_ID"

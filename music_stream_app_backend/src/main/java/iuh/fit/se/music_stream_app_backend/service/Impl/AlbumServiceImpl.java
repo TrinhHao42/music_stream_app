@@ -55,5 +55,14 @@ public class AlbumServiceImpl implements AlbumService {
         });
     }
 
+    @Override
+    public boolean deleteById(String id) {
+        if (albumRepository.existsById(id)) {
+            albumRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
 
 }
