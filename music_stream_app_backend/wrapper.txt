@@ -133,7 +133,6 @@ VII. Endpoints Album
     curl -X DELETE "http://localhost:8080/albums/ALBUM_ID"
 
 
-
 VIII. Endpoints Song
 1) GET /songs?page=0&size=10
   curl -X GET "http://localhost:8080/songs?page=0&size=10"
@@ -172,3 +171,26 @@ IX. Endpoints Playlist
        -d '{"playlistName":"New Name"}'
 4) DELETE /playlists/{id}
   curl -X DELETE "http://localhost:8080/playlists/PLAYLIST_ID"
+
+
+X. Docker / Docker Compose
+A) Build & chạy chỉ backend (dùng DB ngoài hoặc MONGODB_URI custom)
+- Build:
+  docker build -t msapp-backend .
+- Run (dùng local MongoDB):
+  docker run -p 8080:8080 \
+    -e MONGODB_URI="mongodb://host.docker.internal:27017/music_stream_app" \
+    --name msapp_backend msapp-backend
+
+B) Dùng docker-compose (kèm MongoDB)
+- File docker-compose.yml đã kèm sẵn service `mongo` và `app`.
+- Chạy:
+  docker compose up -d --build
+- App sẽ đọc DB qua env: MONGODB_URI=mongodb://mongo:27017/music_stream_app
+
+C) Tùy chọn JAVA_OPTS
+- Có thể truyền tham số JVM qua env `JAVA_OPTS`, ví dụ:
+  -e JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+D) Biến môi trường
+- Đặt `MONGODB_URI` trong `.env` (không commit) hoặc truyền qua `docker run`/`compose`.

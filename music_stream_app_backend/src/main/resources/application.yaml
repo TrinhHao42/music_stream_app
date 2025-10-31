@@ -1,7 +1,9 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   data:
     mongodb:
-      uri: mongodb+srv://music_stream_app_admin:sapassword@cluster0.b9md2md.mongodb.net/
+      uri: ${MONGODB_URI:mongodb://localhost:27017/music_stream_app}
       database: music_stream_app
       field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
       # ⚠️ Thêm dòng này để tắt _class
