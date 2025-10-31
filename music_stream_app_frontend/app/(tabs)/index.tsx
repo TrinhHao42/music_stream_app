@@ -1,13 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+
+import { getAlbums } from '@/api/musicApi';
+import { Album } from '@/types';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const isLoggedIn = !!user;
+
+  const [albums, setAlbums] = useState<Album[]>([]);
+
+  useEffect(() => {
+    getAlbums().then(setAlbums).catch(console.error);
+  }, []);
+
+
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
   const avatarSource = isLoggedIn 
@@ -39,7 +51,7 @@ export default function HomeScreen() {
         <View style={styles.headerRight}>
           <Ionicons name="notifications-outline" size={24} color="#000" />
           <TouchableOpacity onPress={() => !isLoggedIn && router.push('/launch')}>
-            <Image 
+            <Image
               source={avatarSource}
               style={styles.avatar}
               contentFit="cover"
@@ -130,39 +142,19 @@ export default function HomeScreen() {
             <Text style={styles.seeAll}>See all</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            <View style={styles.albumCard}>
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Image 40.png')} 
-                style={styles.albumImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <Text style={styles.albumTitle}>ME</Text>
-              <Text style={styles.albumArtist}>Jessica Gonzalez</Text>
-            </View>
-            <View style={styles.albumCard}>
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Image 41.png')} 
-                style={styles.albumImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <Text style={styles.albumTitle}>Magna nost</Text>
-              <Text style={styles.albumArtist}>Brian Thomas</Text>
-            </View>
-            <View style={styles.albumCard}>
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Image 45.png')} 
-                style={styles.albumImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <Text style={styles.albumTitle}>Magna n</Text>
-              <Text style={styles.albumArtist}>Christoph</Text>
-            </View>
+            {albums.map((alb) => (
+              <View key={alb.albumId} style={styles.albumCard}>
+                <Image 
+                  source={alb.image ? { uri: alb.image } : require('../../assets/images/Home - Audio Listing/Image 40.png')}
+                  style={styles.albumImage}
+                  contentFit="cover"
+                  transition={0}
+                  cachePolicy="memory-disk"
+                />
+                <Text style={styles.albumTitle}>{alb.albumName}</Text>
+                <Text style={styles.albumArtist}>{alb.artists?.[0] ?? 'Unknown'}</Text>
+              </View>
+            ))}
           </ScrollView>
         </View>
 
