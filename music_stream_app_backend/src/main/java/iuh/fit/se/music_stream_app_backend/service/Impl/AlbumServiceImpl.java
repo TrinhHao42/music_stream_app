@@ -9,6 +9,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
@@ -17,7 +18,7 @@ public class AlbumServiceImpl implements AlbumService {
     AlbumRepository albumRepository;
 
     @Override
-    public Album AddAlbum(Album album) {
+    public Album addAlbum(Album album) {
         return albumRepository.save(album);
     }
 
@@ -35,4 +36,24 @@ public class AlbumServiceImpl implements AlbumService {
     public List<Album> getAlbumsByArtist(List<Artist> artists) {
         return albumRepository.getAlbumsByArtists(artists);
     }
+
+    @Override
+    public List<Album> findAlbumByName(String name) {
+       return albumRepository.findByAlbumNameRegex(".*" + name + ".*");
+    }
+
+    @Override
+    public Optional<Album> update (String id, Album album) {
+        return albumRepository.findById(id).map(existing -> {
+            existing.setAlbumName(album.getAlbumName());
+            existing.setArtists(album.getArtists());
+            existing.setImage(album.getImage());
+            existing.setListens(album.getListens());
+            existing.setFavourites(album.getFavourites());
+            existing.setRelease(album.getRelease());
+            return albumRepository.save(existing);
+        });
+    }
+
+
 }
