@@ -1,6 +1,5 @@
 package iuh.fit.se.music_stream_app_backend.controller;
 
-import iuh.fit.se.music_stream_app_backend.models.Account;
 import iuh.fit.se.music_stream_app_backend.models.Album;
 import iuh.fit.se.music_stream_app_backend.models.Artist;
 import iuh.fit.se.music_stream_app_backend.service.AlbumService;
@@ -39,13 +38,26 @@ public class AlbumController {
     public Album addAlbum(@RequestBody Album album) {
         return albumService.addAlbum(album);
     }
-    @GetMapping("/{name}")
-    public List<Album> findByAlbumName(@PathVariable String name) {
+
+    @GetMapping("/search")
+    public List<Album> findByAlbumName(@RequestParam String name) {
         return albumService.findAlbumByName(name);
     }
+
     @PutMapping("/update/{id}")
     public ResponseEntity<Album> update(@PathVariable String id, @RequestBody Album request) {
         Optional<Album> updated = albumService.update(id, request);
         return updated.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        boolean deleted = albumService.deleteById(id);
+        if (deleted) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+
+        }
     }
 }

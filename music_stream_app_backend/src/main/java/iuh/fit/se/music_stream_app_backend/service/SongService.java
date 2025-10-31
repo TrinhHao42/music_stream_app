@@ -15,4 +15,5 @@ public interface SongService {
     List<Song> getSongsByAlbum(Album album);
     Page<Song> getSongsByArtist(List<Artist> artists, Pageable pageable);
     Page<Song> getSongsByName(String name, Pageable pageable);
+    boolean deleteById(String id);
 }

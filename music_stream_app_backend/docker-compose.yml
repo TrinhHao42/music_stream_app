@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  mongo:
+    image: mongo:6
+    container_name: msapp_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: music_stream_app
+
+  app:
+    build: .
+    container_name: msapp_backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "8080:8080"
+    environment:
+      # Truyền URI DB cho Spring (đọc từ application.yaml -> ${MONGODB_URI})
+      MONGODB_URI: mongodb://mongo:27017/music_stream_app
+      # Tuỳ chọn: tối ưu JVM
+      JAVA_OPTS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
+    # Nếu cần hot-reload code (không khuyến nghị cho prod), có thể mount source
+    # volumes:
+    #   - ./:/app
+
+volumes:
+  mongo_data:
+    driver: local

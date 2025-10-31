@@ -18,6 +18,7 @@ public class Account {
     private String email;
     private String password;
     private Type type;
+
     @DBRef
     private User user;
 

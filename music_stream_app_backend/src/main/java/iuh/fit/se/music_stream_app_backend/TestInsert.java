@@ -24,6 +24,17 @@ public class TestInsert {
 //    @Bean
 //    CommandLineRunner run(AccountRepository accountRepository) {
 //        return args -> {
+//
+//            List<User> users = new ArrayList<>();
+//            for (int i = 1; i <= 10; i++) {
+//                User user = User.builder()
+//                        .userName("User " + i)
+//                        .gender(i % 2 == 0)
+//                        .birthday(LocalDate.of(1990 + i, i, i))
+//                        .build();
+//                users.add(user);
+//            }
+//
 //            // Tạo danh sách 10 account mẫu
 //            List<Account> accounts = new ArrayList<>();
 //
@@ -40,6 +51,6 @@ public class TestInsert {
 //            System.out.println("✅ Đã thêm " + accounts.size() + " accounts vào MongoDB");
 //        };
 //    }
-//
+
 
 }
