@@ -1,7 +1,6 @@
 package iuh.fit.se.music_stream_app_backend.controller;
 
 import iuh.fit.se.music_stream_app_backend.models.Album;
-import iuh.fit.se.music_stream_app_backend.models.Artist;
 import iuh.fit.se.music_stream_app_backend.service.AlbumService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +29,8 @@ public class AlbumController {
     }
 
     @PostMapping("/artist")
-    public List<Album> getAlbumsByArtist(@RequestBody List<Artist> artists) {
-        return albumService.getAlbumsByArtist(artists);
+    public List<Album> getAlbumsByArtist(@RequestBody List<String> artistNames) {
+        return albumService.getAlbumsByArtist(artistNames);
     }
 
     @PostMapping
@@ -57,7 +56,6 @@ public class AlbumController {
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();
-
         }
     }
 }
