@@ -88,24 +88,14 @@ public class AuthServiceImpl implements AuthService {
             throw new ResourceNotFoundException("Account", "email", request.getEmail());
         }
 
-        // Debug logging
-        System.out.println("=== DEBUG LOGIN ===");
-        System.out.println("Account Email: " + account.getEmail());
-        System.out.println("Account UserId: " + account.getUserId());
-        System.out.println("UserId is null? " + (account.getUserId() == null));
-        System.out.println("UserId length: " + (account.getUserId() != null ? account.getUserId().length() : 0));
-
         // Thử query trực tiếp
         List<User> allUsers = userRepository.findAll();
         System.out.println("Total users in DB: " + allUsers.size());
         if (!allUsers.isEmpty()) {
-            System.out.println("First user ID: " + allUsers.get(0).getUserId());
-            System.out.println("First user Name: " + allUsers.get(0).getUserName());
 
             // Check xem có user nào match không
             boolean found = allUsers.stream()
                     .anyMatch(u -> u.getUserId().equals(account.getUserId()));
-            System.out.println("Found matching user? " + found);
         }
 
         // Lấy thông tin user

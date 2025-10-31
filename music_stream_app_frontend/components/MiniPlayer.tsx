@@ -11,6 +11,7 @@ export default function MiniPlayer() {
     isMinimized, 
     setIsMinimized, 
     currentSong,
+    closeMiniPlayer,
     isPlaying,
     playSound,
     pauseSound,
@@ -107,6 +108,16 @@ export default function MiniPlayer() {
             color="#fff" 
           />
         </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.closeButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            closeMiniPlayer();
+          }}
+        >
+          <Ionicons name="close" size={20} color="#999" />
+        </TouchableOpacity>
       </TouchableOpacity>
     </View>
   );
@@ -164,6 +175,12 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [isLoggedIn] = useState(false);
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
   const avatarSource = isLoggedIn 
@@ -21,10 +22,19 @@ export default function HomeScreen() {
           <View style={styles.iconContainer}>
             <Ionicons name="musical-notes" size={28} color="#9333EA" />
           </View>
-          <View>
-            <Text style={styles.greeting}>Good morning,</Text>
-            <Text style={styles.userName}>{isLoggedIn ? 'Ashley Scott' : 'Guest'}</Text>
-          </View>
+          {isLoggedIn ? (
+            <View>
+              <Text style={styles.greeting}>Good morning,</Text>
+              <Text style={styles.userName}>{user?.userName || 'User'}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.loginButton}
+              onPress={() => router.push('/login' as any)}
+            >
+              <Text style={styles.loginButtonText}>Login</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View style={styles.headerRight}>
           <Ionicons name="notifications-outline" size={24} color="#000" />
@@ -260,6 +270,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
+  },
+  loginButton: {
+    backgroundColor: '#9333EA',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 25,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   headerRight: {
     flexDirection: 'row',
