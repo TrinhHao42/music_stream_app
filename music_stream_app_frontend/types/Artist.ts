@@ -1,9 +1,11 @@
+import { AlbumEmbedded, SongEmbedded } from './embedded';
+
 type Artist = {
-  id: string;
-  name: string;
-  image: any;
+  artistId: string;
+  artistName: string;
+  albums: AlbumEmbedded[];
+  songs: SongEmbedded[];
   followers: number;
-  type: 'artist';
 };
 
 export default Artist;
