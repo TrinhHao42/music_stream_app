@@ -11,7 +11,7 @@ const LibraryAlbumItem = ({ title, artistName, numOfSongs, image }: Props) => {
     return (
         <TouchableOpacity
             style={styles.card} activeOpacity={0.8}
-            onPress={() => navigation.navigate('playlistdetails' as never)}
+            onPress={() => navigation.navigate('album-details' as never)}
         >
             <Image source={image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={{ flex: 1 }}>

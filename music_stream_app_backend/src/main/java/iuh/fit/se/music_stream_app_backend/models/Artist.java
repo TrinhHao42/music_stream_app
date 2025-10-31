@@ -19,15 +19,13 @@ public class Artist {
     private String artistId;
 
     private String artistName;
-    private LocalDate birthday;
-    private boolean gender;
 
     @DBRef
     private List<Album> albums;
 
     @DBRef
-    private List<User> followers;
+    private List<Song> songs;
+    private long followers;
 
-    @DBRef
-    private Account account;
+
 }

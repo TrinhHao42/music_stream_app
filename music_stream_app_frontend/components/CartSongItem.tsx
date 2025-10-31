@@ -4,14 +4,22 @@ import Entypo from '@expo/vector-icons/Entypo';
 
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from "expo-image";
+import { useNavigation } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = { title: string; artistName: string; views: number; duration: string; image: any };
 
 const LibrarySongItem = ({ title, artistName, views, duration, image }: Props) => {
+    const navigation = useNavigation();
     return (
-        <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-            <Image source={image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />
+        <TouchableOpacity style={styles.card} activeOpacity={0.8}
+            onPress={() => navigation.navigate('play-audio' as never)}
+        >
+            <Image
+                source={image} style={styles.img}
+                contentFit="cover" transition={0}
+                cachePolicy="memory-disk"
+            />
             <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.title}>{title}</Text>
                 <Text numberOfLines={1} style={{ color: '#777' }}>{artistName}</Text>

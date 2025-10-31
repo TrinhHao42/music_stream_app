@@ -9,7 +9,9 @@ const HomeLayout = () => {
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarStyle: { backgroundColor: 'white' },
+                tabBarStyle: { 
+                    backgroundColor: 'white',
+                },
             }}
         >
             <Tabs.Screen
@@ -71,6 +73,12 @@ const HomeLayout = () => {
             />
             <Tabs.Screen
                 name="playlist-details"
+                options={{
+                    href: null,
+                }}
+            />
+            <Tabs.Screen
+                name="album-details"
                 options={{
                     href: null,
                 }}

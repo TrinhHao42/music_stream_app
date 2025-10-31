@@ -1,25 +1,104 @@
+import { useMiniPlayer } from '@/contexts/MiniPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function PlayAnAudio() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { 
+    isMinimized, 
+    setIsMinimized, 
+    setCurrentSong, 
+    currentSong,
+    isPlaying, 
+    position, 
+    duration,
+    playSound,
+    pauseSound,
+    seekTo,
+    skipForward,
+    skipBackward,
+  } = useMiniPlayer();
+
+  const [isLiked, setIsLiked] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+  const [sliderValue, setSliderValue] = useState(0);
 
   // Dữ liệu mẫu (có thể thay bằng params từ navigation)
   const songData = {
-    title: params.title || 'FLOWER',
-    artist: params.artist || 'Jessica Gonzalez',
+    title: params.title || 'Tâm Trí Lang Thang',
+    artist: params.artist || 'Ánh sáng aza',
     duration: params.duration || '3:08',
-    currentTime: '0:06',
+    url: 'https://res.cloudinary.com/df6daoo5t/video/upload/v1761622912/Ch%C3%BAng_Ta_C%E1%BB%A7a_Hi%E1%BB%87n_T%E1%BA%A1i_fzvfsm.mp3',
     image: require('../assets/images/Play an Audio/Image 58.png'),
     likes: '12K',
     comments: '450',
   };
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  useEffect(() => {
+    // Set current song when component mounts
+    if (!currentSong || currentSong.url !== songData.url) {
+      setCurrentSong(songData);
+    }
+  }, []);
+
+  // Auto play when song is loaded and not already playing
+  useEffect(() => {
+    if (currentSong && duration > 0 && !isPlaying && !hasAutoPlayed) {
+      playSound();
+      setHasAutoPlayed(true);
+    }
+  }, [currentSong, duration, isPlaying, hasAutoPlayed]);
+
+  // Update slider value when position changes (only if not dragging)
+  useEffect(() => {
+    if (!isDraggingSlider) {
+      setSliderValue(position);
+    }
+  }, [position, isDraggingSlider]);
+
+  // Expand when this screen is opened
+  useEffect(() => {
+    setIsMinimized(false);
+  }, []);
+
+  const handleMinimize = () => {
+    setIsMinimized(true);
+    router.back();
+  };
+
+  const togglePlayPause = async () => {
+    if (isPlaying) {
+      await pauseSound();
+    } else {
+      await playSound();
+    }
+  };
+
+  const handleSkipForward = async () => {
+    await skipForward(10);
+  };
+
+  const handleSkipBackward = async () => {
+    await skipBackward(10);
+  };
+
+  const formatTime = (millis: number) => {
+    const totalSeconds = Math.floor(millis / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const getWaveformProgress = () => {
+    if (duration === 0) return 0;
+    return (position / duration) * 28; // 28 bars
+  };
 
   return (
     <View style={styles.container}>
@@ -27,106 +106,149 @@ export default function PlayAnAudio() {
       <ImageBackground 
         source={songData.image} 
         style={styles.backgroundImage}
-        blurRadius={20}
+        blurRadius={30}
       >
         {/* Overlay để làm tối background */}
         <View style={styles.overlay} />
 
         {/* Header với nút back và minimize */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+          <View style={styles.headerLeft} />
+          <View style={styles.headerCenter} />
+          <TouchableOpacity onPress={handleMinimize} style={styles.headerButton}>
             <Ionicons name="chevron-down" size={28} color="#fff" />
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerText}>Play</Text>
+        </View>
+
+        {/* Center Content */}
+        <View style={styles.centerContent}>
+          {/* Album Art */}
+          <View style={styles.albumArtContainer}>
+            <Image 
+              source={songData.image} 
+              style={styles.albumArt}
+            />
           </View>
-          <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="chevron-down" size={28} color="#fff" />
-          </TouchableOpacity>
+
+          {/* Song Info */}
+          <View style={styles.songInfo}>
+            <Text style={styles.songTitle}>{songData.title}</Text>
+            <Text style={styles.songArtist}>{songData.artist}</Text>
+          </View>
+
+          {/* Waveform visualization */}
+          <View style={styles.waveformContainer}>
+            <View style={styles.waveform}>
+              {[8, 15, 28, 40, 55, 70, 58, 45, 35, 42, 55, 68, 75, 60, 48, 35, 25, 18, 28, 40, 52, 65, 55, 42, 30, 20, 12, 8].map((height, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.waveBar,
+                    {
+                      height,
+                      backgroundColor: index < getWaveformProgress() ? '#fff' : 'rgba(255,255,255,0.3)',
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+
+          {/* Progress Slider */}
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={duration}
+            value={isDraggingSlider ? sliderValue : position}
+            onValueChange={(value) => {
+              setIsDraggingSlider(true);
+              setSliderValue(value);
+            }}
+            onSlidingStart={() => setIsDraggingSlider(true)}
+            onSlidingComplete={(value) => {
+              setIsDraggingSlider(false);
+              seekTo(value);
+            }}
+            minimumTrackTintColor="#FFFFFF"
+            maximumTrackTintColor="rgba(255,255,255,0.3)"
+            thumbTintColor="#FFFFFF"
+          />
+
+          {/* Time */}
+          <View style={styles.timeContainer}>
+            <Text style={styles.timeText}>{formatTime(position)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration)}</Text>
+          </View>
         </View>
 
-        {/* Song Info */}
-        <View style={styles.songInfo}>
-          <Text style={styles.songTitle}>{songData.title}</Text>
-          <Text style={styles.songArtist}>{songData.artist}</Text>
-        </View>
-
-        {/* Waveform visualization */}
-        <View style={styles.waveformContainer}>
-          <View style={styles.waveform}>
-            {[10, 25, 45, 60, 75, 55, 40, 30, 45, 60, 80, 50, 35, 20].map((height, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.waveBar,
-                  {
-                    height,
-                    backgroundColor: index < 2 ? '#fff' : 'rgba(255,255,255,0.3)',
-                  },
-                ]}
+        {/* Bottom Controls */}
+        <View style={styles.bottomSection}>
+          {/* Main Controls */}
+          <View style={styles.controls}>
+            <TouchableOpacity 
+              style={styles.controlButton}
+              onPress={() => setIsShuffle(!isShuffle)}
+            >
+              <Ionicons 
+                name="shuffle" 
+                size={24} 
+                color={isShuffle ? '#1DB954' : '#fff'} 
               />
-            ))}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.controlButton}
+              onPress={handleSkipBackward}
+            >
+              <Ionicons name="play-back" size={32} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.playButton}
+              onPress={togglePlayPause}
+            >
+              <Ionicons 
+                name={isPlaying ? 'pause' : 'play'} 
+                size={36} 
+                color="#000" 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.controlButton}
+              onPress={handleSkipForward}
+            >
+              <Ionicons name="play-forward" size={32} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.controlButton}>
+              <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Time */}
-        <View style={styles.timeContainer}>
-          <Text style={styles.timeText}>{songData.currentTime}</Text>
-          <Text style={styles.timeText}>{songData.duration}</Text>
-        </View>
+          {/* Social interactions */}
+          <View style={styles.socialContainer}>
+            <TouchableOpacity 
+              style={styles.socialButton}
+              onPress={() => setIsLiked(!isLiked)}
+            >
+              <Ionicons 
+                name={isLiked ? 'heart' : 'heart-outline'} 
+                size={24} 
+                color={isLiked ? '#FF1744' : '#fff'} 
+              />
+              <Text style={styles.socialText}>{songData.likes}</Text>
+            </TouchableOpacity>
 
-        {/* Controls */}
-        <View style={styles.controls}>
-          <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="shuffle" size={24} color="#fff" />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+              <Text style={styles.socialText}>{songData.comments}</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="play-skip-back" size={32} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.playButton}
-            onPress={() => setIsPlaying(!isPlaying)}
-          >
-            <Ionicons 
-              name={isPlaying ? 'pause' : 'play'} 
-              size={40} 
-              color="#000" 
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="play-skip-forward" size={32} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Social interactions */}
-        <View style={styles.socialContainer}>
-          <TouchableOpacity 
-            style={styles.socialButton}
-            onPress={() => setIsLiked(!isLiked)}
-          >
-            <Ionicons 
-              name={isLiked ? 'heart' : 'heart-outline'} 
-              size={24} 
-              color="#fff" 
-            />
-            <Text style={styles.socialText}>{songData.likes}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.socialButton}>
-            <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-            <Text style={styles.socialText}>{songData.comments}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.socialButton}>
-            <Ionicons name="share-outline" size={24} color="#fff" />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="share-social-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </ImageBackground>
     </View>
@@ -142,7 +264,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    justifyContent: 'space-between',
   },
   overlay: {
     position: 'absolute',
@@ -150,7 +271,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   header: {
     flexDirection: 'row',
@@ -160,6 +281,9 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
     zIndex: 1,
+  },
+  headerLeft: {
+    width: 40,
   },
   headerButton: {
     width: 40,
@@ -176,80 +300,120 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  songInfo: {
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 30,
     zIndex: 1,
   },
+  albumArtContainer: {
+    width: 280,
+    height: 280,
+    marginBottom: 30,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  albumArt: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  songInfo: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
   songTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 8,
     textAlign: 'center',
   },
   songArtist: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#fff',
-    opacity: 0.9,
+    opacity: 0.8,
   },
   waveformContainer: {
+    width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    zIndex: 1,
+    marginBottom: 12,
   },
   waveform: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    height: 60,
+    gap: 3,
+    height: 80,
+    width: '100%',
   },
   waveBar: {
-    width: 4,
+    width: 3,
     borderRadius: 2,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+    marginTop: 10,
   },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 40,
-    zIndex: 1,
+    width: '100%',
+    paddingHorizontal: 10,
   },
   timeText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
+  },
+  bottomSection: {
+    paddingBottom: 40,
+    zIndex: 1,
   },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    gap: 20,
-    zIndex: 1,
+    gap: 15,
+    marginBottom: 25,
   },
   controlButton: {
-    width: 50,
-    height: 50,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   playButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#000',
+    shadowColor: '#fff',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   socialContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: 40,
-    paddingVertical: 30,
-    zIndex: 1,
+    paddingHorizontal: 60,
   },
   socialButton: {
     flexDirection: 'row',
