@@ -1,7 +1,5 @@
 package iuh.fit.se.music_stream_app_backend.controller;
 
-import iuh.fit.se.music_stream_app_backend.models.Album;
-import iuh.fit.se.music_stream_app_backend.models.Artist;
 import iuh.fit.se.music_stream_app_backend.models.Song;
 import iuh.fit.se.music_stream_app_backend.service.SongService;
 import lombok.AccessLevel;
@@ -49,17 +47,17 @@ public class SongController {
 
     @PostMapping("/artist")
     public Page<Song> getSongsByArtist(
-            @RequestBody List<Artist> artists,
+            @RequestBody List<String> artistNames,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        return songService.getSongsByArtist(artists, pageable);
+        return songService.getSongsByArtist(artistNames, pageable);
     }
 
-    @PostMapping("/album")
-    public List<Song> getSongsByAlbum(@RequestBody Album album) {
-        return songService.getSongsByAlbum(album);
+    @GetMapping("/album/{albumName}")
+    public List<Song> getSongsByAlbum(@PathVariable String albumName) {
+        return songService.getSongsByAlbumName(albumName);
     }
 
     @PostMapping
@@ -74,8 +72,6 @@ public class SongController {
             return ResponseEntity.noContent().build();
         } else {
             return ResponseEntity.notFound().build();
-
         }
     }
-
 }

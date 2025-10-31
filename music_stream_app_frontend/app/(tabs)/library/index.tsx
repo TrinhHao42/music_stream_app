@@ -3,13 +3,12 @@ import CartArtistItem from '@/components/CartArtistItem';
 import CartSongItem from '@/components/CartSongItem';
 import { Album, Artist, Song } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
   FlatList,
+  Image,
   RefreshControl,
   StyleSheet,
   Text,
@@ -17,12 +16,22 @@ import {
   View
 } from 'react-native';
 
-type LibraryItem = Song | Album | Artist;
+type LibraryItem = Song | Album | Artist | Playlist;
+
+type Playlist = {
+  id: string;
+  title: string;
+  image: any;
+  songCount: number;
+  type: 'playlist';
+};
 
 const LibraryScreen = () => {
   const categories = ['Playlists', 'New tag', 'Songs', 'Albums', 'Artists'];
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
   const handleRefreshing = () => {
     setRefreshing(true);
 
@@ -34,6 +43,20 @@ const LibraryScreen = () => {
   };
 
   const data: LibraryItem[] = [
+    {
+      id: 'p1',
+      title: 'Top 50 - Canada',
+      image: require('@/assets/images/Playlist Details - Audio Listing/Image 50.png'),
+      songCount: 50,
+      type: 'playlist',
+    },
+    {
+      id: 'p2',
+      title: 'My Favorites',
+      image: require('@/assets/images/My Library/Image 101.png'),
+      songCount: 24,
+      type: 'playlist',
+    },
     {
       id: '1',
       name: 'Mer Waston',
@@ -96,15 +119,70 @@ const LibraryScreen = () => {
     },
   ];
 
-  useFocusEffect(
-    useCallback(() => {
-      setIsLoading(true);
-      const timeout = setTimeout(() => setIsLoading(false), 1000);
-      return () => clearTimeout(timeout);
-    }, [])
-  );
-
   const router = useRouter();
+
+  // Filter data based on selected category
+  const getFilteredData = () => {
+    if (!selectedCategory) {
+      return data; // Show all items when no filter is selected
+    }
+    
+    switch (selectedCategory) {
+      case 'Playlists':
+        return data.filter((item) => item.type === 'playlist');
+      case 'Songs':
+        return data.filter((item) => item.type === 'song');
+      case 'Albums':
+        return data.filter((item) => item.type === 'album');
+      case 'Artists':
+        return data.filter((item) => item.type === 'artist');
+      case 'New tag':
+        // Filter items added recently (you can customize this logic)
+        return data.slice(0, 3); // Example: show first 3 items
+      default:
+        return data; // Show all items
+    }
+  };
+
+  const filteredData = getFilteredData();
+
+  // Handle category selection - toggle if already selected
+  const handleCategoryPress = (category: string) => {
+    if (selectedCategory === category) {
+      setSelectedCategory(null); // Deselect if already selected
+    } else {
+      setSelectedCategory(category);
+    }
+  };
+
+  // Clear filter
+  const handleClearFilter = () => {
+    setSelectedCategory(null);
+  };
+
+  const handleItemPress = (item: LibraryItem) => {
+    switch (item.type) {
+      case 'playlist':
+        router.push('/playlist-details' as never);
+        break;
+      case 'song':
+        router.push({
+          pathname: '/play-audio',
+          params: {
+            title: item.title,
+            artist: item.artistName,
+            duration: item.duration,
+          },
+        } as never);
+        break;
+      case 'album':
+        router.push('/album-details' as never);
+        break;
+      case 'artist':
+        router.push('/artist-profile' as never);
+        break;
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -118,18 +196,42 @@ const LibraryScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <Animated.FlatList
-          data={categories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.category} activeOpacity={0.6}>
-              <Text style={{ fontWeight: 'bold' }}>{item}</Text>
+        <View style={styles.filterContainer}>
+          {selectedCategory && (
+            <TouchableOpacity 
+              style={styles.clearButton} 
+              onPress={handleClearFilter}
+              activeOpacity={0.6}
+            >
+              <Ionicons name="close" size={20} color="#666" />
             </TouchableOpacity>
           )}
-          keyExtractor={(item) => item}
-        />
+          
+          <FlatList
+            data={selectedCategory ? [selectedCategory] : categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryList}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={[
+                  styles.category,
+                  selectedCategory === item && styles.categorySelected
+                ]} 
+                activeOpacity={0.6}
+                onPress={() => handleCategoryPress(item)}
+              >
+                <Text style={[
+                  styles.categoryText,
+                  selectedCategory === item && styles.categoryTextSelected
+                ]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item}
+          />
+        </View>
       </View>
 
       {isLoading ? (
@@ -138,7 +240,7 @@ const LibraryScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={data}
+          data={filteredData}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -152,32 +254,55 @@ const LibraryScreen = () => {
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
             switch (item.type) {
+              case 'playlist':
+                return (
+                  <TouchableOpacity
+                    style={styles.playlistItem}
+                    onPress={() => handleItemPress(item)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.playlistImageContainer}>
+                      <Image source={item.image} style={styles.playlistImage} />
+                    </View>
+                    <View style={styles.playlistInfo}>
+                      <Text style={styles.playlistTitle}>{item.title}</Text>
+                      <Text style={styles.playlistCount}>{item.songCount} songs</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                  </TouchableOpacity>
+                );
               case 'song':
                 return (
-                  <CartSongItem
-                    title={item.title}
-                    artistName={item.artistName}
-                    views={item.views}
-                    duration={item.duration}
-                    image={item.image}
-                  />
+                  <TouchableOpacity onPress={() => handleItemPress(item)}>
+                    <CartSongItem
+                      title={item.title}
+                      artistName={item.artistName}
+                      views={item.views}
+                      duration={item.duration}
+                      image={item.image}
+                    />
+                  </TouchableOpacity>
                 );
               case 'album':
                 return (
-                  <CartAlbumItem
-                    title={item.title}
-                    artistName={item.artistName}
-                    numOfSongs={item.numOfSongs}
-                    image={item.image}
-                  />
+                  <TouchableOpacity onPress={() => handleItemPress(item)}>
+                    <CartAlbumItem
+                      title={item.title}
+                      artistName={item.artistName}
+                      numOfSongs={item.numOfSongs}
+                      image={item.image}
+                    />
+                  </TouchableOpacity>
                 );
               case 'artist':
                 return (
-                  <CartArtistItem
-                    name={item.name }
-                    image={item.image}
-                    followers={item.followers}
-                  />
+                  <TouchableOpacity onPress={() => handleItemPress(item)}>
+                    <CartArtistItem
+                      name={item.name}
+                      image={item.image}
+                      followers={item.followers}
+                    />
+                  </TouchableOpacity>
                 );
               default:
                 return null;
@@ -201,6 +326,18 @@ const styles = StyleSheet.create({
   },
   header: { fontSize: 22, fontWeight: '700' },
 
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
+  },
+  clearButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 5,
+  },
   categoryList: {
     paddingHorizontal: 10,
     paddingBottom: 10,
@@ -217,10 +354,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  categorySelected: {
+    backgroundColor: '#1DB954',
+  },
+  categoryText: {
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  categoryTextSelected: {
+    color: '#fff',
+  },
 
   floatList: {
     paddingBottom: 20,
     gap: 16,
+  },
+
+  playlistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    backgroundColor: '#fff',
+  },
+  playlistImageContainer: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  playlistImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+  },
+  playlistInfo: {
+    flex: 1,
+  },
+  playlistTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  playlistCount: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 
