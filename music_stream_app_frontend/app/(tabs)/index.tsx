@@ -95,8 +95,8 @@ export default function HomeScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -183,6 +183,7 @@ export default function HomeScreen() {
                 style={styles.albumCard}
                 onPress={() => router.push({
                   pathname: '/album-details',
+                  params: { album: JSON.stringify(alb) }
                   params: { albumId: alb.albumId }
                 })}
               >

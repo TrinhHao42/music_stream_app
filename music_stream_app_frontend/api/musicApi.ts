@@ -76,9 +76,21 @@ export async function getArtists(page?: number, size?: number): Promise<Artist[]
 export async function getSongByName(name: string): Promise<Song | null> {
   const path = `/songs/search?name=${encodeURIComponent(name)}`;
   try {
-    const response = await request<PageableResponse<Song>>(path);
-    // Trả về song đầu tiên trong content array
-    return response.content.length > 0 ? response.content[0] : null;
+    const response = await request<any>(path);
+    
+    // Check if response is a PageableResponse or direct Song/Array
+    if (response && response.content && Array.isArray(response.content)) {
+      // PageableResponse format
+      return response.content.length > 0 ? response.content[0] : null;
+    } else if (Array.isArray(response)) {
+      // Direct array format
+      return response.length > 0 ? response[0] : null;
+    } else if (response && response.songId) {
+      // Direct Song object
+      return response as Song;
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error fetching song by name:', error);
     return null;
@@ -96,6 +108,26 @@ export async function getSongById(songId: string): Promise<Song | null> {
   }
 }
 
+export async function getAlbumByName(name: string): Promise<Album | null> {
+  const path = `/albums/search?name=${encodeURIComponent(name)}`;
+  try {
+    const response = await request<any>(path);
+    
+    // Check if response is a PageableResponse or direct Album/Array
+    if (response && response.content && Array.isArray(response.content)) {
+      // PageableResponse format
+      return response.content.length > 0 ? response.content[0] : null;
+    } else if (Array.isArray(response)) {
+      // Direct array format
+      return response.length > 0 ? response[0] : null;
+    } else if (response && response.albumId) {
+      // Direct Album object
+      return response as Album;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching album by name:', error);
 export async function getAlbumById(albumId: string): Promise<Album | null> {
   const path = `/albums/${albumId}`;
   try {
@@ -113,6 +145,7 @@ export default {
   getArtists,
   getSongByName,
   getSongById,
+  getAlbumByName,
   getAlbumById,
 };
 

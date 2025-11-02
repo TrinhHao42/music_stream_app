@@ -85,7 +85,9 @@ export default function MiniPlayer() {
             setIsDraggingSlider(true);
           }}
           onSlidingComplete={(value) => {
-            seekTo(value);
+            if (duration > 0) {
+              seekTo(value);
+            }
             setIsDraggingSlider(false);
           }}
           minimumTrackTintColor="#1DB954"

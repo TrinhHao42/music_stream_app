@@ -155,4 +155,16 @@ public class AuthServiceImpl implements AuthService {
         return userRepository.findById(account.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", account.getUserId()));
     }
+
+    @Override
+    public void logout(String token) {
+        // Validate token
+        if (!jwtUtils.validateToken(token)) {
+            throw new InvalidTokenException("Token không hợp lệ hoặc đã hết hạn");
+        }
+
+        // Trong trường hợp đơn giản, logout chỉ cần client xóa token
+        // Nếu muốn blacklist token, có thể thêm logic ở đây
+        // Ví dụ: lưu token vào Redis với TTL = thời gian hết hạn của token
+    }
 }
