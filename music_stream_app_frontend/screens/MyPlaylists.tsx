@@ -1,6 +1,7 @@
 import Entypo from '@expo/vector-icons/Entypo';
 import { Image } from 'expo-image';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const playlists = [
   { id: '1', title: 'Ipsum sit nulla', artist: "Ashley Scott", songs: 12, image: require('../../assets/images/My Playlists/Image 110.png') },
@@ -8,6 +9,14 @@ const playlists = [
   ];
 
 export default function MyPlaylists() {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Thêm API call ở đây nếu cần
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>My Playlists</Text>
@@ -15,6 +24,14 @@ export default function MyPlaylists() {
         data={playlists}
         keyExtractor={(p) => p.id}
         contentContainerStyle={{ padding: 16 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#9333EA"
+            colors={['#9333EA']}
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.row} activeOpacity={0.8}>
             <Image source={item.image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />

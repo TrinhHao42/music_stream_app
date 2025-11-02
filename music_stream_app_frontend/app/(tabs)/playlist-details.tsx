@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { getSongs } from '@/api/musicApi';
 import { Song } from '@/types';
@@ -27,10 +27,26 @@ export default function PlaylistDetails() {
   const router = useRouter();
   const params = useLocalSearchParams<{ title: string; subtitle?: string }>();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const data = await getSongs(0, 50);
+      setSongs(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    getSongs(0, 50).then(setSongs).catch(console.error);
+    fetchData();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const totalDuration = songs.reduce((sum, song) => sum + song.duration, 0);
   const totalDurationStr = formatDuration(totalDuration);
@@ -87,6 +103,14 @@ export default function PlaylistDetails() {
       <FlatList
         data={songs}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#9333EA"
+            colors={['#9333EA']}
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.songItem}

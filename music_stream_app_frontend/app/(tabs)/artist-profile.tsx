@@ -61,7 +61,7 @@ export default function ArtistProfile() {
         {/* Artist Info */}
         <View style={styles.artistInfo}>
           <Image 
-            source={artist.artistImg ? { uri: artist.artistImg } : require('../../assets/images/Artist Profile/Image 63.png')} 
+            source={artist.artistImage ? { uri: artist.artistImage } : require('../../assets/images/Artist Profile/Image 63.png')} 
             style={styles.avatar} 
             contentFit="cover" 
             transition={0} 
