@@ -3,21 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  ScrollView,
-import { getAlbumById, getSongByName } from '@/api/musicApi';
-import { Album } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+
 import {
   ActivityIndicator,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -67,49 +56,8 @@ const AlbumDetailsScreen = () => {
     );
   }
 
-  const handleSongPress = (songItem: { songId: string; title: string }) => {
-    // Navigate with song data
-    router.push({
-      pathname: '/play-audio',
-      params: {
-        song: JSON.stringify({
-          songId: songItem.songId,
-          title: songItem.title,
-          artist: album.artists,
-          coverUrl: album.image,
-          duration: 0,
-        }),
-      },
-    } as never);
-const AlbumDetailsScreen = () => {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const [isDownloaded, setIsDownloaded] = useState(false);
-  const [album, setAlbum] = useState<Album | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAlbum = async () => {
-      if (!params.albumId) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const albumData = await getAlbumById(params.albumId as string);
-        setAlbum(albumData);
-      } catch (error) {
-        console.error('Error fetching album:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAlbum();
-  }, [params.albumId]);
-
   const handleSongPress = async (songTitle: string) => {
+    setLoadingSongTitle(songTitle);
     try {
       const song = await getSongByName(songTitle);
       if (song) {
@@ -122,46 +70,10 @@ const AlbumDetailsScreen = () => {
       }
     } catch (error) {
       console.error('Error fetching song:', error);
+    } finally {
+      setLoadingSongTitle(null);
     }
   };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={28} color="#fff" />
-          </TouchableOpacity>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#fff" />
-        </View>
-      </View>
-    );
-  }
-
-  if (!album) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={28} color="#fff" />
-          </TouchableOpacity>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ fontSize: 16, color: '#fff' }}>Album not found</Text>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -179,29 +91,16 @@ const AlbumDetailsScreen = () => {
             source={album.image ? { uri: album.image } : require('@/assets/images/My Library/Image 101.png')}
             style={styles.albumCover}
             contentFit="cover"
-            transition={0}
-            cachePolicy="memory-disk"
-          />
-          <Text style={styles.albumTitle}>{album.albumName}</Text>
-          <Text style={styles.artistName}>{Array.isArray(album.artists) ? album.artists[0] : 'Unknown Artist'}</Text>
-          <Text style={styles.albumMeta}>Album • {album.songs?.length || 0} songs</Text>
             transition={200}
             cachePolicy="memory-disk"
           />
-        </View>
-
-        {/* Album Info */}
-        <View style={styles.albumInfo}>
           <Text style={styles.albumTitle}>{album.albumName}</Text>
-          
-          <View style={styles.artistContainer}>
-            <Text style={styles.artistName}>{album.artists.join(', ')}</Text>
-          </View>
-
-          <Text style={styles.albumMeta}>
-            Album • {album.release}
+          <Text style={styles.artistName}>
+            {Array.isArray(album.artists) ? album.artists.join(', ') : 'Unknown Artist'}
           </Text>
-        </View>
+          <Text style={styles.albumMeta}>
+            Album • {album.songs?.length || 0} songs • {album.release}
+          </Text>
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
@@ -232,83 +131,38 @@ const AlbumDetailsScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Songs</Text>
           {album.songs && album.songs.length > 0 ? (
-            <FlatList
-              data={album.songs}
-              scrollEnabled={false}
-              renderItem={({ item, index }) => (
-                <TouchableOpacity 
-                  style={styles.songItem}
-                  onPress={async () => {
-                    setLoadingSongTitle(item.title);
-                    try {
-                      const fullSong = await getSongByName(item.title);
-                      if (fullSong) {
-                        router.push({
-                          pathname: '/play-audio',
-                          params: { song: JSON.stringify(fullSong) }
-                        });
-                      } else {
-                        Alert.alert('Error', 'Song not found');
-                      }
-                    } catch (error) {
-                      Alert.alert('Error', 'Failed to load song');
-                      console.error('Error loading song:', error);
-                    } finally {
-                      setLoadingSongTitle(null);
-                    }
-                  }}
-                  disabled={loadingSongTitle === item.title}
-                >
-                  <Image 
-                    source={item.coverUrl ? { uri: item.coverUrl } : require('@/assets/images/My Library/Image 101.png')} 
-                    style={styles.songImage} 
-                    contentFit="cover" 
-                    transition={0} 
-                    cachePolicy="memory-disk" 
-                  />
-                  <View style={styles.songInfo}>
-                    <Text style={styles.songTitle}>{item.title}</Text>
-                    <Text style={styles.songArtist}>{Array.isArray(album.artists) ? album.artists[0] : 'Unknown Artist'}</Text>
-                  </View>
-                  {loadingSongTitle === item.title ? (
-                    <ActivityIndicator size="small" color="#666" />
-                  ) : (
-                    <TouchableOpacity>
-                      <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-              )}
-              keyExtractor={(item, index) => `${item.songId}-${index}`}
-            />
+            album.songs.map((song, index) => (
+              <TouchableOpacity 
+                key={song.songId || index}
+                style={styles.songItem}
+                onPress={() => handleSongPress(song.title)}
+                disabled={loadingSongTitle === song.title}
+              >
+                <Image 
+                  source={song.coverUrl ? { uri: song.coverUrl } : require('@/assets/images/My Library/Image 101.png')} 
+                  style={styles.songImage} 
+                  contentFit="cover" 
+                  transition={0} 
+                  cachePolicy="memory-disk" 
+                />
+                <View style={styles.songInfo}>
+                  <Text style={styles.songTitle}>{song.title}</Text>
+                  <Text style={styles.songArtist}>
+                    {Array.isArray(album.artists) ? album.artists[0] : 'Unknown Artist'}
+                  </Text>
+                </View>
+                {loadingSongTitle === song.title ? (
+                  <ActivityIndicator size="small" color="#666" />
+                ) : (
+                  <TouchableOpacity>
+                    <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            ))
           ) : (
             <Text style={styles.emptyText}>No songs available</Text>
           )}
-        <View style={styles.songsList}>
-          {album.songs.map((song, index) => (
-            <TouchableOpacity
-              key={song.songId || index}
-              style={styles.songItem}
-              activeOpacity={0.7}
-              onPress={() => handleSongPress(song.title)}
-            >
-              <View style={styles.songInfo}>
-                <Text style={styles.songTitle} numberOfLines={1}>
-                  {song.title}
-                </Text>
-                <Text style={styles.songArtist} numberOfLines={1}>
-                  {album.artists.join(', ')}
-                </Text>
-              </View>
-              
-              <TouchableOpacity 
-                style={styles.songMenuButton}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="ellipsis-vertical" size={20} color="#999" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
         </View>
 
         {/* Bottom spacing */}
@@ -443,3 +297,4 @@ const styles = StyleSheet.create({
 });
 
 export default AlbumDetailsScreen;
+
