@@ -1,53 +1,100 @@
+import { getAlbumById, getSongByName } from '@/api/musicApi';
+import { Album } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-
-type Song = {
-  id: string;
-  title: string;
-  artist: string;
-  duration?: string;
-};
 
 const AlbumDetailsScreen = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [isDownloaded, setIsDownloaded] = useState(false);
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - bạn có thể thay bằng data thực từ params hoặc API
-  const albumData = {
-    id: '1',
-    title: 'BẬT NÓ LÊN',
-    artist: 'SOOBIN',
-    artistImage: require('@/assets/images/My Library/Image 107.png'),
-    coverImage: require('@/assets/images/My Library/Image 101.png'),
-    type: 'Album',
-    releaseDate: '25 thg 6 2024',
-    songs: [
-      { id: '1', title: 'Intro', artist: 'SOOBIN', duration: '1:23' },
-      { id: '2', title: 'DANCING IN THE DARK', artist: 'SOOBIN', duration: '3:45' },
-      { id: '3', title: 'Sunset In The City - Deluxe Vers...', artist: 'SOOBIN', duration: '4:12' },
-      { id: '4', title: 'Sẽ Quên Em Nhanh Thôi', artist: 'SOOBIN', duration: '3:56' },
-      { id: '5', title: 'Giả như', artist: 'SOOBIN', duration: '4:23' },
-    ]
+  useEffect(() => {
+    const fetchAlbum = async () => {
+      if (!params.albumId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const albumData = await getAlbumById(params.albumId as string);
+        setAlbum(albumData);
+      } catch (error) {
+        console.error('Error fetching album:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAlbum();
+  }, [params.albumId]);
+
+  const handleSongPress = async (songTitle: string) => {
+    try {
+      const song = await getSongByName(songTitle);
+      if (song) {
+        router.push({
+          pathname: '/play-audio',
+          params: {
+            song: JSON.stringify(song),
+          },
+        } as never);
+      }
+    } catch (error) {
+      console.error('Error fetching song:', error);
+    }
   };
 
-  const handleSongPress = (song: Song) => {
-    router.push({
-      pathname: '/play-audio',
-      params: {
-        song: JSON.stringify(song),
-      },
-    } as never);
-  };
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      </View>
+    );
+  }
+
+  if (!album) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 16, color: '#fff' }}>Album not found</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -71,28 +118,24 @@ const AlbumDetailsScreen = () => {
         {/* Album Cover */}
         <View style={styles.albumCoverContainer}>
           <Image 
-            source={albumData.coverImage}
+            source={album.image ? { uri: album.image } : require('@/assets/images/My Library/Image 101.png')}
             style={styles.albumCover}
             contentFit="cover"
             transition={200}
+            cachePolicy="memory-disk"
           />
         </View>
 
         {/* Album Info */}
         <View style={styles.albumInfo}>
-          <Text style={styles.albumTitle}>{albumData.title}</Text>
+          <Text style={styles.albumTitle}>{album.albumName}</Text>
           
           <View style={styles.artistContainer}>
-            <Image 
-              source={albumData.artistImage}
-              style={styles.artistImage}
-              contentFit="cover"
-            />
-            <Text style={styles.artistName}>{albumData.artist}</Text>
+            <Text style={styles.artistName}>{album.artists.join(', ')}</Text>
           </View>
 
           <Text style={styles.albumMeta}>
-            {albumData.type} • {albumData.releaseDate}
+            Album • {album.release}
           </Text>
         </View>
 
@@ -143,19 +186,19 @@ const AlbumDetailsScreen = () => {
 
         {/* Songs List */}
         <View style={styles.songsList}>
-          {albumData.songs.map((song, index) => (
+          {album.songs.map((song, index) => (
             <TouchableOpacity
-              key={song.id}
+              key={song.songId || index}
               style={styles.songItem}
               activeOpacity={0.7}
-              onPress={() => handleSongPress(song)}
+              onPress={() => handleSongPress(song.title)}
             >
               <View style={styles.songInfo}>
                 <Text style={styles.songTitle} numberOfLines={1}>
                   {song.title}
                 </Text>
                 <Text style={styles.songArtist} numberOfLines={1}>
-                  {song.artist}
+                  {album.artists.join(', ')}
                 </Text>
               </View>
               

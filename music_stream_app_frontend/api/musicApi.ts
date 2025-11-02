@@ -96,12 +96,24 @@ export async function getSongById(songId: string): Promise<Song | null> {
   }
 }
 
+export async function getAlbumById(albumId: string): Promise<Album | null> {
+  const path = `/albums/${albumId}`;
+  try {
+    const album = await request<Album>(path);
+    return album;
+  } catch (error) {
+    console.error('Error fetching album by id:', error);
+    return null;
+  }
+}
+
 export default {
   getAlbums,
   getSongs,
   getArtists,
   getSongByName,
   getSongById,
+  getAlbumById,
 };
 
 
