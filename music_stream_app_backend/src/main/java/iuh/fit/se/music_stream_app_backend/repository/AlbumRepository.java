@@ -12,5 +12,6 @@ public interface AlbumRepository extends MongoRepository<Album, String> {
     @Query("{'artists': {$in: ?0}}")
     List<Album> getAlbumsByArtistIn(List<String> artistNames);
 
+    @Query("{'albumName': {$regex: ?0, $options: 'i'}}")
     List<Album> findByAlbumNameRegex(String regex);
 }

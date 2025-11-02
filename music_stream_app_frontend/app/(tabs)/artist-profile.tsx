@@ -1,4 +1,4 @@
-import { getSongByName } from '@/api/musicApi';
+import { getAlbumByName, getSongByName } from '@/api/musicApi';
 import Artist from '@/types/Artist';
 import formatCompactNumber from '@/utils/FormatCompactNumber';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ export default function ArtistProfile() {
   const params = useLocalSearchParams();
   const [isFollowing, setIsFollowing] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
+  const [loadingAlbumName, setLoadingAlbumName] = useState<string | null>(null);
 
   // Parse artist from params
   if (!params.artist) {
@@ -60,19 +61,19 @@ export default function ArtistProfile() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Artist Info */}
         <View style={styles.artistInfo}>
-          <Image 
-            source={artist.artistImage ? { uri: artist.artistImage } : require('../../assets/images/Artist Profile/Image 63.png')} 
-            style={styles.avatar} 
-            contentFit="cover" 
-            transition={0} 
-            cachePolicy="memory-disk" 
+          <Image
+            source={artist.artistImage ? { uri: artist.artistImage } : require('../../assets/images/Artist Profile/Image 63.png')}
+            style={styles.avatar}
+            contentFit="cover"
+            transition={0}
+            cachePolicy="memory-disk"
           />
           <Text style={styles.artistName}>{artist.artistName}</Text>
           <Text style={styles.followers}>{formatCompactNumber(artist.followers)} Followers</Text>
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={isFollowing ? styles.followingButton : styles.followButton}
               onPress={() => setIsFollowing(!isFollowing)}
             >
@@ -103,7 +104,7 @@ export default function ArtistProfile() {
               data={artist.songs}
               scrollEnabled={false}
               renderItem={({ item, index }) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.songItem}
                   onPress={async () => {
                     setLoadingSongTitle(item.title);
@@ -126,12 +127,12 @@ export default function ArtistProfile() {
                   }}
                   disabled={loadingSongTitle === item.title}
                 >
-                  <Image 
-                    source={item.coverUrl ? { uri: item.coverUrl } : require('../../assets/images/Artist Profile/Image 66.png')} 
-                    style={styles.songImage} 
-                    contentFit="cover" 
-                    transition={0} 
-                    cachePolicy="memory-disk" 
+                  <Image
+                    source={item.coverUrl ? { uri: item.coverUrl } : require('../../assets/images/Artist Profile/Image 66.png')}
+                    style={styles.songImage}
+                    contentFit="cover"
+                    transition={0}
+                    cachePolicy="memory-disk"
                   />
                   <View style={styles.songInfo}>
                     <Text style={styles.songTitle}>{item.title}</Text>
@@ -162,14 +163,41 @@ export default function ArtistProfile() {
               showsHorizontalScrollIndicator={false}
               data={artist.albums}
               renderItem={({ item, index }) => (
-                <TouchableOpacity style={styles.albumCard}>
-                  <Image 
-                    source={item.image ? { uri: item.image } : require('../../assets/images/Artist Profile/Image 71.png')} 
-                    style={styles.albumImage} 
-                    contentFit="cover" 
-                    transition={0} 
-                    cachePolicy="memory-disk" 
+                <TouchableOpacity
+                  style={styles.albumCard}
+                  onPress={async () => {
+                    setLoadingAlbumName(item.albumName);
+                    try {
+                      const fullAlbum = await getAlbumByName(item.albumName);
+                      if (fullAlbum) {
+                        router.push({
+                          pathname: '/album-details',
+                          params: { album: JSON.stringify(fullAlbum) }
+                        });
+                      } else {
+                        Alert.alert('Error', 'Album not found');
+                      }
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to load album');
+                      console.error('Error loading album:', error);
+                    } finally {
+                      setLoadingAlbumName(null);
+                    }
+                  }}
+                  disabled={loadingAlbumName === item.albumName}
+                >
+                  <Image
+                    source={item.image ? { uri: item.image } : require('../../assets/images/Artist Profile/Image 71.png')}
+                    style={styles.albumImage}
+                    contentFit="cover"
+                    transition={0}
+                    cachePolicy="memory-disk"
                   />
+                  {loadingAlbumName === item.albumName && (
+                    <View style={{ position: 'absolute', top: 70, left: 70 }}>
+                      <ActivityIndicator size="small" color="#000" />
+                    </View>
+                  )}
                   <Text style={styles.albumTitle}>{item.albumName}</Text>
                   <Text style={styles.albumArtist}>{artist.artistName}</Text>
                 </TouchableOpacity>

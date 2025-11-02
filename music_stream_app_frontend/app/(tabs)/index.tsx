@@ -95,8 +95,8 @@ export default function HomeScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -178,7 +178,14 @@ export default function HomeScreen() {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             {albums.map((alb) => (
-              <View key={alb.albumId} style={styles.albumCard}>
+              <TouchableOpacity
+                key={alb.albumId}
+                style={styles.albumCard}
+                onPress={() => router.push({
+                  pathname: '/album-details',
+                  params: { album: JSON.stringify(alb) }
+                })}
+              >
                 <Image
                   source={alb.image ? { uri: alb.image } : require('../../assets/images/Home - Audio Listing/Image 40.png')}
                   style={styles.albumImage}
@@ -188,7 +195,7 @@ export default function HomeScreen() {
                 />
                 <Text style={styles.albumTitle}>{alb.albumName}</Text>
                 <Text style={styles.albumArtist}>{alb.artists?.[0] ?? 'Unknown'}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
