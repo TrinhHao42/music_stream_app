@@ -11,6 +11,7 @@ type Song = {
   coverUrl: string;
   album: AlbumEmbedded;
   artist: string[];
+  type: 'song';
 };
 
 export default Song;

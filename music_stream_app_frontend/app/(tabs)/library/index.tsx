@@ -1,7 +1,7 @@
 import CartAlbumItem from '@/components/CartAlbumItem';
 import CartArtistItem from '@/components/CartArtistItem';
 import CartSongItem from '@/components/CartSongItem';
-import { Album, Artist, Song } from '@/types';
+import { Album, Artist, Playlist, Song } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -18,16 +18,9 @@ import {
 
 type LibraryItem = Song | Album | Artist | Playlist;
 
-type Playlist = {
-  id: string;
-  title: string;
-  image: any;
-  songCount: number;
-  type: 'playlist';
-};
-
 const LibraryScreen = () => {
   const categories = ['Playlists', 'New tag', 'Songs', 'Albums', 'Artists'];
+  const [data, setData] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -42,82 +35,6 @@ const LibraryScreen = () => {
     return () => clearTimeout(timeout);
   };
 
-  const data: LibraryItem[] = [
-    {
-      id: 'p1',
-      title: 'Top 50 - Canada',
-      image: require('@/assets/images/Playlist Details - Audio Listing/Image 50.png'),
-      songCount: 50,
-      type: 'playlist',
-    },
-    {
-      id: 'p2',
-      title: 'My Favorites',
-      image: require('@/assets/images/My Library/Image 101.png'),
-      songCount: 24,
-      type: 'playlist',
-    },
-    {
-      id: '1',
-      name: 'Mer Waston',
-      image: require('@/assets/images/My Library/Image 107.png'),
-      followers: 2300000,
-      type: 'artist',
-    },
-    {
-      id: '2',
-      title: 'FLOWER',
-      image: require('@/assets/images/My Library/Image 101.png'),
-      artistName: 'Jessica Gonzalez',
-      views: 1000000,
-      duration: '3:15',
-      type: 'song',
-    },
-    {
-      id: '3',
-      title: 'Shape of You',
-      image: require('@/assets/images/My Library/Image 102.png'),
-      artistName: 'Anthony Taylor',
-      views: 1500000,
-      duration: '4:24',
-      type: 'song',
-    },
-    {
-      id: '4',
-      title: 'Blinding Lights',
-      artistName: 'Ashley Scott',
-      numOfSongs: 4,
-      image: require('@/assets/images/My Library/Image 103.png'),
-      type: 'album',
-    },
-    {
-      id: '5',
-      title: 'Levitating',
-      image: require('@/assets/images/My Library/Image 104.png'),
-      artistName: 'Anthony Taylor',
-      views: 2000000,
-      duration: '3:23',
-      type: 'song',
-    },
-    {
-      id: '6',
-      title: 'Astronaut in the Ocean',
-      image: require('@/assets/images/My Library/Image 105.png'),
-      artistName: 'Pedro Moreno',
-      views: 3000000,
-      duration: '2:45',
-      type: 'song',
-    },
-    {
-      id: '7',
-      title: 'Dynamite',
-      image: require('@/assets/images/My Library/Image 106.png'),
-      artistName: 'Elena Jimenez',
-      views: 4000000,
-      duration: '3:19',
-      type: 'song',
-    },
-  ];
 
   const router = useRouter();
 
@@ -168,18 +85,17 @@ const LibraryScreen = () => {
       case 'song':
         router.push({
           pathname: '/play-audio',
-          params: {
-            title: item.title,
-            artist: item.artistName,
-            duration: item.duration,
-          },
+          params: { song: JSON.stringify(item) },
         } as never);
         break;
       case 'album':
         router.push('/album-details' as never);
         break;
       case 'artist':
-        router.push('/artist-profile' as never);
+        router.push({
+          pathname: '/artist-profile',
+          params: { artist: JSON.stringify(item) },
+        } as never);
         break;
     }
   };
@@ -249,7 +165,6 @@ const LibraryScreen = () => {
               tintColor="#09bfd7"
             />
           }
-          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.floatList}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
@@ -262,11 +177,11 @@ const LibraryScreen = () => {
                     activeOpacity={0.7}
                   >
                     <View style={styles.playlistImageContainer}>
-                      <Image source={item.image} style={styles.playlistImage} />
+                      <Image source={{ uri: item.image }} style={styles.playlistImage} />
                     </View>
                     <View style={styles.playlistInfo}>
-                      <Text style={styles.playlistTitle}>{item.title}</Text>
-                      <Text style={styles.playlistCount}>{item.songCount} songs</Text>
+                      <Text style={styles.playlistTitle}>{item.playlistName}</Text>
+                      <Text style={styles.playlistCount}>{item.songs.length} songs</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#999" />
                   </TouchableOpacity>
@@ -274,23 +189,17 @@ const LibraryScreen = () => {
               case 'song':
                 return (
                   <TouchableOpacity onPress={() => handleItemPress(item)}>
-                    <CartSongItem
-                      title={item.title}
-                      artistName={item.artistName}
-                      views={item.views}
-                      duration={item.duration}
-                      image={item.image}
-                    />
+                    <CartSongItem song={item} />
                   </TouchableOpacity>
                 );
               case 'album':
                 return (
                   <TouchableOpacity onPress={() => handleItemPress(item)}>
                     <CartAlbumItem
-                      title={item.title}
-                      artistName={item.artistName}
-                      numOfSongs={item.numOfSongs}
-                      image={item.image}
+                      title={item.albumName}
+                      artistName={item.artists.join(', ')}
+                      numOfSongs={item.songs.length}
+                      image={{ uri: item.image }}
                     />
                   </TouchableOpacity>
                 );
@@ -298,8 +207,8 @@ const LibraryScreen = () => {
                 return (
                   <TouchableOpacity onPress={() => handleItemPress(item)}>
                     <CartArtistItem
-                      name={item.name}
-                      image={item.image}
+                      name={item.artistName}
+                      image={item.albums?.[0]?.image ? { uri: item.albums[0].image } : require('../../../assets/images/Artist Profile/Image 63.png')}
                       followers={item.followers}
                     />
                   </TouchableOpacity>

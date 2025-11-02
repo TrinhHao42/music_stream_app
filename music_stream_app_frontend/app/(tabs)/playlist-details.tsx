@@ -90,7 +90,7 @@ export default function PlaylistDetails() {
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.songItem}
-            onPress={() => router.push({ pathname: '/play-audio', params: { title: item.title, artist: item.artist.join(', '), duration: formatDuration(item.duration) } })}
+            onPress={() => router.push({ pathname: '/play-audio', params: { song: JSON.stringify(item) } })}
           >
             <Image source={item.coverUrl ? { uri: item.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')} style={styles.songImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={styles.songInfo}>

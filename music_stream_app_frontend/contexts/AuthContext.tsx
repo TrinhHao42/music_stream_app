@@ -1,0 +1,151 @@
+import * as SecureStore from 'expo-secure-store';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import axiosInstance from '../utils/axiosInstance';
+
+interface User {
+    userId: string;
+    userName: string;
+    playlists: string[];
+    followList: string[];
+    likeList: string[];
+    favouriteAlbums: string[];
+}
+
+interface AuthContextType {
+    user: User | null;
+    accessToken: string | null;
+    refreshToken: string | null;
+    isLoading: boolean;
+    login: (email: string, password: string) => Promise<void>;
+    register: (email: string, password: string, userName: string) => Promise<void>;
+    logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType>({
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isLoading: true,
+    login: async () => { },
+    register: async () => { },
+    logout: async () => { },
+});
+
+export const useAuth = () => useContext(AuthContext);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const [user, setUser] = useState<User | null>(null);
+    const [accessToken, setAccessToken] = useState<string | null>(null);
+    const [refreshToken, setRefreshToken] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Load stored auth data on mount
+    useEffect(() => {
+        loadStoredAuth();
+    }, []);
+
+    const loadStoredAuth = async () => {
+        try {
+            const storedAccessToken = await SecureStore.getItemAsync('accessToken');
+            const storedRefreshToken = await SecureStore.getItemAsync('refreshToken');
+            const storedUser = await SecureStore.getItemAsync('user');
+
+            if (storedAccessToken && storedRefreshToken && storedUser) {
+                setAccessToken(storedAccessToken);
+                setRefreshToken(storedRefreshToken);
+                setUser(JSON.parse(storedUser));
+            }
+        } catch (error) {
+            console.error('Error loading stored auth:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const login = async (email: string, password: string) => {
+        try {
+            const response = await axiosInstance.post('/api/auth/login', {
+                email,
+                password,
+            });
+
+            const { accessToken, refreshToken, user } = response.data;
+
+            // Save tokens and user to SecureStore
+            await SecureStore.setItemAsync('accessToken', accessToken);
+            await SecureStore.setItemAsync('refreshToken', refreshToken);
+            await SecureStore.setItemAsync('user', JSON.stringify(user));
+
+            // Update state
+            setAccessToken(accessToken);
+            setRefreshToken(refreshToken);
+            setUser(user);
+        } catch (error: any) {
+            console.error('Login error:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            if (error.code === 'ERR_NETWORK') {
+                throw new Error('Cannot connect to server. Please check if backend is running on http://localhost:8080');
+            }
+
+            throw new Error(error.response?.data?.message || error.message || 'Login failed');
+        }
+    };
+
+    const register = async (email: string, password: string, userName: string) => {
+        try {
+            console.log('Attempting register with:', { email, userName, baseURL: axiosInstance.defaults.baseURL });
+
+            await axiosInstance.post('/api/auth/register', {
+                email,
+                password,
+                userName,
+            });
+
+            console.log('Registration successful');
+        } catch (error: any) {
+            console.error('Register error:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            if (error.code === 'ERR_NETWORK') {
+                throw new Error('Cannot connect to server. Please check if backend is running on http://localhost:8080');
+            }
+
+            throw new Error(error.response?.data?.message || error.message || 'Registration failed');
+        }
+    };
+
+    const logout = async () => {
+        try {
+            // Clear SecureStore
+            await SecureStore.deleteItemAsync('accessToken');
+            await SecureStore.deleteItemAsync('refreshToken');
+            await SecureStore.deleteItemAsync('user');
+
+            // Clear state
+            setAccessToken(null);
+            setRefreshToken(null);
+            setUser(null);
+        } catch (error) {
+            console.error('Error during logout:', error);
+        }
+    };
+
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                accessToken,
+                refreshToken,
+                isLoading,
+                login,
+                register,
+                logout,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
+};

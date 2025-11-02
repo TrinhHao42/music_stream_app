@@ -44,9 +44,7 @@ const AlbumDetailsScreen = () => {
     router.push({
       pathname: '/play-audio',
       params: {
-        title: song.title,
-        artist: song.artist,
-        duration: song.duration,
+        song: JSON.stringify(song),
       },
     } as never);
   };

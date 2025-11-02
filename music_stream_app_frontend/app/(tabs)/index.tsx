@@ -3,13 +3,15 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
 
 import { getAlbums, getArtists, getSongs } from '@/api/musicApi';
 import { Album, Artist, Song } from '@/types';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [isLoggedIn] = useState(false);
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
 
   const [albums, setAlbums] = useState<Album[]>([]);
   const [forYouSongs, setForYouSongs] = useState<Song[]>([]);
@@ -25,8 +27,8 @@ export default function HomeScreen() {
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
   const avatarSource = isLoggedIn 
-    ? require('../../assets/images/Home - Audio Listing/Ashley Scott.png')
-    : require('../../assets/images/logo.jpg');
+    ? { uri: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Mason' }
+    : require('@/assets/images/logo.jpg');
 
   return (
     <View style={styles.container}>
@@ -36,10 +38,19 @@ export default function HomeScreen() {
           <View style={styles.iconContainer}>
             <Ionicons name="musical-notes" size={28} color="#9333EA" />
           </View>
-          <View>
-            <Text style={styles.greeting}>Good morning,</Text>
-            <Text style={styles.userName}>{isLoggedIn ? 'Ashley Scott' : 'Guest'}</Text>
-          </View>
+          {isLoggedIn ? (
+            <View>
+              <Text style={styles.greeting}>Good morning,</Text>
+              <Text style={styles.userName}>{user?.userName || 'User'}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.loginButton}
+              onPress={() => router.push('/login' as any)}
+            >
+              <Text style={styles.loginButtonText}>Login</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View style={styles.headerRight}>
           <Ionicons name="notifications-outline" size={24} color="#000" />
@@ -75,7 +86,10 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 key={song.songId}
                 style={styles.card}
-                onPress={() => router.push('/play-audio')}
+                onPress={() => router.push({
+                  pathname: '/play-audio',
+                  params: { song: JSON.stringify(song) }
+                })}
               >
                 <Image 
                   source={song.coverUrl ? { uri: song.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')} 
@@ -163,7 +177,7 @@ export default function HomeScreen() {
                 style={styles.artistCard}
                 onPress={() => router.push({
                   pathname: '/artist-profile',
-                  params: { name: artist.artistName }
+                  params: { artist: JSON.stringify(artist) }
                 })}
               >
                 <View style={styles.artistImagePlaceholder}>
@@ -215,6 +229,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
+  },
+  loginButton: {
+    backgroundColor: '#9333EA',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 25,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   headerRight: {
     flexDirection: 'row',
