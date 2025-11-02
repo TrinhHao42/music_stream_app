@@ -41,8 +41,9 @@ public class SecurityEndpoints {
             // Playlists - cần đăng nhập
             "/playlists/**",
 
-            // Current user info
-            "/api/auth/me"
+            // Current user info and logout
+            "/api/auth/me",
+            "/api/auth/logout"
     );
 
     // ==================== ROLE-BASED ENDPOINTS ====================
@@ -88,4 +89,3 @@ public class SecurityEndpoints {
         return premiumRoleEndpoints.toArray(new String[0]);
     }
 }
-

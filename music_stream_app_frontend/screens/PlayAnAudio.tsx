@@ -207,7 +207,9 @@ export default function PlayAnAudio() {
             onSlidingStart={() => setIsDraggingSlider(true)}
             onSlidingComplete={(value) => {
               setIsDraggingSlider(false);
-              seekTo(value);
+              if (duration > 0) {
+                seekTo(value);
+              }
             }}
             minimumTrackTintColor="#FFFFFF"
             maximumTrackTintColor="rgba(255,255,255,0.3)"

@@ -42,4 +42,12 @@ public class AuthController {
         User user = authService.getCurrentUser(userDetails.getUsername());
         return ResponseEntity.ok(user);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
+        // Lấy token từ header (bỏ phần "Bearer ")
+        String token = authHeader.substring(7);
+        authService.logout(token);
+        return ResponseEntity.ok("Đăng xuất thành công");
+    }
 }

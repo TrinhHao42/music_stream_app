@@ -62,39 +62,68 @@ export const MiniPlayerProvider = ({ children }: { children: React.ReactNode }) 
     }
   }, [currentSong?.url]);
 
-  // Load sound when song changes
-  useEffect(() => {
-    if (currentSong?.url) {
-      player.replace(currentSong.url);
-    }
-  }, [currentSong?.url]);
-
   const playSound = async () => {
-    player.play();
+    try {
+      player.play();
+    } catch (error) {
+      console.error('Error playing sound:', error);
+    }
   };
 
   const pauseSound = async () => {
-    player.pause();
+    try {
+      player.pause();
+    } catch (error) {
+      console.error('Error pausing sound:', error);
+    }
   };
 
   const stopSound = async () => {
-    player.pause();
-    player.seekTo(0);
+    try {
+      if (player && status.isLoaded) {
+        player.pause();
+        if (status.duration > 0) {
+          player.currentTime = 0;
+        }
+      }
+    } catch (error) {
+      console.error('Error stopping sound:', error);
+    }
   };
 
   const seekTo = async (positionMillis: number) => {
-    const positionSeconds = positionMillis / 1000;
-    player.seekTo(positionSeconds);
+    try {
+      if (player && status.isLoaded && status.duration > 0) {
+        const positionSeconds = positionMillis / 1000;
+        // Clamp position to valid range
+        const clampedPosition = Math.max(0, Math.min(positionSeconds, status.duration));
+        player.currentTime = clampedPosition;
+      }
+    } catch (error) {
+      console.error('Error seeking:', error);
+    }
   };
 
   const skipForward = async (seconds: number = 10) => {
-    const newPosition = Math.min((position / 1000) + seconds, duration / 1000);
-    player.seekTo(newPosition);
+    try {
+      if (player && status.isLoaded && status.duration > 0) {
+        const newPosition = Math.min(status.currentTime + seconds, status.duration);
+        player.currentTime = newPosition;
+      }
+    } catch (error) {
+      console.error('Error skipping forward:', error);
+    }
   };
 
   const skipBackward = async (seconds: number = 10) => {
-    const newPosition = Math.max((position / 1000) - seconds, 0);
-    player.seekTo(newPosition);
+    try {
+      if (player && status.isLoaded && status.duration > 0) {
+        const newPosition = Math.max(status.currentTime - seconds, 0);
+        player.currentTime = newPosition;
+      }
+    } catch (error) {
+      console.error('Error skipping backward:', error);
+    }
   };
 
   const closeMiniPlayer = async () => {
