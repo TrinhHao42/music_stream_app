@@ -1,3 +1,4 @@
+import Song from '@/types/Song';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -9,6 +10,7 @@ interface MiniPlayerContextType {
     artist: string;
     image: any;
     url: string;
+    fullSong?: Song; // Lưu toàn bộ Song object
   } | null;
   setCurrentSong: (song: any) => void;
   closeMiniPlayer: () => Promise<void>;

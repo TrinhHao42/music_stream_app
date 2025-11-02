@@ -1,5 +1,9 @@
 import { useMiniPlayer } from '@/contexts/MiniPlayerContext';
+import Song from '@/types/Song';
+import formatCompactNumber from '@/utils/FormatCompactNumber';
 import { Ionicons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Feather from '@expo/vector-icons/Feather';
 import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -28,16 +32,41 @@ export default function PlayAnAudio() {
   const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
   const [isDraggingSlider, setIsDraggingSlider] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
+  const [hasEnded, setHasEnded] = useState(false);
 
-  // Dữ liệu mẫu (có thể thay bằng params từ navigation)
+  // Parse song from params với error handling
+  if (!params.song) {
+    // Redirect back if no song provided
+    router.back();
+    return null;
+  }
+
+  let song: Song;
+  try {
+    song = JSON.parse(params.song as string);
+  } catch (error) {
+    console.error('Error parsing song:', error);
+    console.error('params.song:', params.song);
+    router.back();
+    return null;
+  }
+
+  // Helper function to format duration from seconds to MM:SS
+  function formatDuration(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // Chuẩn bị dữ liệu từ song object
   const songData = {
-    title: params.title || 'Tâm Trí Lang Thang',
-    artist: params.artist || 'Ánh sáng aza',
-    duration: params.duration || '3:08',
-    url: 'https://res.cloudinary.com/df6daoo5t/video/upload/v1761622912/Ch%C3%BAng_Ta_C%E1%BB%A7a_Hi%E1%BB%87n_T%E1%BA%A1i_fzvfsm.mp3',
-    image: require('../assets/images/Play an Audio/Image 58.png'),
-    likes: '12K',
-    comments: '450',
+    title: song.title,
+    artist: Array.isArray(song.artist) ? song.artist.join(', ') : (song.artist || 'Unknown Artist'),
+    url: song.audioUrl,
+    image: song.coverUrl ? { uri: song.coverUrl } : require('../assets/images/Play an Audio/Image 58.png'),
+    likes: formatCompactNumber(song.likes || 0),
+    comments: '0',
+    fullSong: song, // Lưu toàn bộ Song object
   };
 
   useEffect(() => {
@@ -60,7 +89,14 @@ export default function PlayAnAudio() {
     if (!isDraggingSlider) {
       setSliderValue(position);
     }
-  }, [position, isDraggingSlider]);
+    
+    // Kiểm tra nếu audio đã kết thúc (position >= duration và duration > 0)
+    if (duration > 0 && position >= duration - 100) { // -100ms để tránh lỗi rounding
+      setHasEnded(true);
+    } else if (hasEnded && position < duration - 1000) {
+      setHasEnded(false);
+    }
+  }, [position, isDraggingSlider, duration, hasEnded]);
 
   // Expand when this screen is opened
   useEffect(() => {
@@ -88,6 +124,12 @@ export default function PlayAnAudio() {
     await skipBackward(10);
   };
 
+  const handleReplay = async () => {
+    await seekTo(0);
+    setHasEnded(false);
+    await playSound();
+  };
+
   const formatTime = (millis: number) => {
     const totalSeconds = Math.floor(millis / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -111,12 +153,10 @@ export default function PlayAnAudio() {
         {/* Overlay để làm tối background */}
         <View style={styles.overlay} />
 
-        {/* Header với nút back và minimize */}
+        {/* Header với nút minimize */}
         <View style={styles.header}>
-          <View style={styles.headerLeft} />
-          <View style={styles.headerCenter} />
-          <TouchableOpacity onPress={handleMinimize} style={styles.headerButton}>
-            <Ionicons name="chevron-down" size={28} color="#fff" />
+          <TouchableOpacity onPress={handleMinimize}>
+            <Feather name="minimize-2" size={20} color="white" />
           </TouchableOpacity>
         </View>
 
@@ -205,13 +245,17 @@ export default function PlayAnAudio() {
 
             <TouchableOpacity 
               style={styles.playButton}
-              onPress={togglePlayPause}
+              onPress={hasEnded ? handleReplay : togglePlayPause}
             >
-              <Ionicons 
-                name={isPlaying ? 'pause' : 'play'} 
-                size={36} 
-                color="#000" 
-              />
+              {hasEnded ? (
+                <AntDesign name="reload" size={36} color="#000" />
+              ) : (
+                <Ionicons 
+                  name={isPlaying ? 'pause' : 'play'} 
+                  size={36} 
+                  color="#000" 
+                />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -275,30 +319,17 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    zIndex: 1,
   },
-  headerLeft: {
-    width: 40,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
+  minimizeButton: {
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 22,
   },
   centerContent: {
     flex: 1,
@@ -370,6 +401,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     paddingHorizontal: 10,
+    marginBottom: 40,
   },
   timeText: {
     color: '#fff',

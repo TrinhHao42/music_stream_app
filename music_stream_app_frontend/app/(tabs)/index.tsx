@@ -27,8 +27,8 @@ export default function HomeScreen() {
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
   const avatarSource = isLoggedIn 
-    ? require('../../assets/images/Home - Audio Listing/Ashley Scott.png')
-    : require('../../assets/images/logo.jpg');
+    ? { uri: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Mason' }
+    : require('@/assets/images/logo.jpg');
 
   return (
     <View style={styles.container}>
@@ -86,7 +86,10 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 key={song.songId}
                 style={styles.card}
-                onPress={() => router.push('/play-audio')}
+                onPress={() => router.push({
+                  pathname: '/play-audio',
+                  params: { song: JSON.stringify(song) }
+                })}
               >
                 <Image 
                   source={song.coverUrl ? { uri: song.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')} 
@@ -174,7 +177,7 @@ export default function HomeScreen() {
                 style={styles.artistCard}
                 onPress={() => router.push({
                   pathname: '/artist-profile',
-                  params: { name: artist.artistName }
+                  params: { artist: JSON.stringify(artist) }
                 })}
               >
                 <View style={styles.artistImagePlaceholder}>
