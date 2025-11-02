@@ -9,6 +9,7 @@ type Album = {
   image: string;
   artists: string[];
   songs: SongEmbedded[];
+  type: 'album';
 };
 
 export default Album;

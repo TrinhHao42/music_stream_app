@@ -3,7 +3,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useDebounce } from 'use-debounce';
 
 type SearchResult = Song | Album | Artist;
@@ -15,6 +15,7 @@ const SearchScreen = () => {
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [debouncedSearchText] = useDebounce(searchText, 300);
+  const [refreshing, setRefreshing] = useState(false);
 
   const data: SearchResult[] = [
     {
@@ -70,6 +71,20 @@ const SearchScreen = () => {
     inputSearchRef.current?.clear();
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Re-filter results
+    if (debouncedSearchText) {
+      const filteredResults = data.filter(item =>
+        'name' in item
+          ? item.name.toLowerCase().includes(debouncedSearchText.toLowerCase())
+          : item.title.toLowerCase().includes(debouncedSearchText.toLowerCase())
+      );
+      setResults(filteredResults);
+    }
+    setRefreshing(false);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -108,6 +123,14 @@ const SearchScreen = () => {
         data={results}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#9333EA"
+            colors={['#9333EA']}
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.row} activeOpacity={0.7}>
             <Text style={styles.title}>

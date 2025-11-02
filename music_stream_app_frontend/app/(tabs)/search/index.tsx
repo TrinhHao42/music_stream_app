@@ -2,7 +2,7 @@ import { Artist, Song } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 
 type SearchItem = Artist | Song;
 
@@ -46,6 +46,7 @@ const SONGS: Song[] = [
 
 const SearchScreen = () => {
   const [query, setQuery] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   const { artistResults, songResults } = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -59,6 +60,12 @@ const SearchScreen = () => {
   }, [query]);
 
   const clear = () => setQuery("");
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Refresh data here if needed
+    setTimeout(() => setRefreshing(false), 1000);
+  };
 
   const renderRow = (item: SearchItem) => (
     <View style={styles.row}>
@@ -96,6 +103,14 @@ const SearchScreen = () => {
         data={[{ key: "artists" }, { key: "songs" }]}
         keyExtractor={(s) => s.key}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#9333EA"
+            colors={['#9333EA']}
+          />
+        }
         renderItem={({ item }) => (
           <View>
             <Text style={styles.sectionTitle}>{item.key === "artists" ? "Artists" : "Songs"}</Text>

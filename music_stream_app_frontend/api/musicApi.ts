@@ -73,10 +73,35 @@ export async function getArtists(page?: number, size?: number): Promise<Artist[]
   return response.content;
 }
 
+export async function getSongByName(name: string): Promise<Song | null> {
+  const path = `/songs/search?name=${encodeURIComponent(name)}`;
+  try {
+    const response = await request<PageableResponse<Song>>(path);
+    // Trả về song đầu tiên trong content array
+    return response.content.length > 0 ? response.content[0] : null;
+  } catch (error) {
+    console.error('Error fetching song by name:', error);
+    return null;
+  }
+}
+
+export async function getSongById(songId: string): Promise<Song | null> {
+  const path = `/songs/${songId}`;
+  try {
+    const song = await request<Song>(path);
+    return song;
+  } catch (error) {
+    console.error('Error fetching song by id:', error);
+    return null;
+  }
+}
+
 export default {
   getAlbums,
   getSongs,
   getArtists,
+  getSongByName,
+  getSongById,
 };
 
 
