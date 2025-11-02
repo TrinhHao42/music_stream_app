@@ -31,32 +31,36 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final SecurityEndpoints securityEndpoints;
 
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Cho phép các origins cụ thể (thay vì wildcard)
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:3001",
-                "http://localhost:5173",
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:5173"
-        ));
-        // Cho phép các HTTP methods
+
+        // ✅ Cho phép tất cả origin — hợp lệ khi dùng allowedOriginPatterns
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+
+        // ✅ Cho phép các HTTP methods thông dụng
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        // Cho phép tất cả headers
+
+        // ✅ Cho phép tất cả headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        // Cho phép gửi credentials (cookies, authorization headers)
+
+        // ✅ Cho phép gửi cookies, token, header Authorization,...
         configuration.setAllowCredentials(true);
-        // Expose headers cho client
+
+        // ✅ Cho phép client thấy các header này trong response
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
-        // Cache preflight request
+
+        // ✅ Cache preflight (OPTIONS) trong 1 giờ
         configuration.setMaxAge(3600L);
 
+        // ✅ Đăng ký CORS config cho tất cả endpoint
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

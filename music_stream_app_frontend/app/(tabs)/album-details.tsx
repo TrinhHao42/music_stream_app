@@ -8,6 +8,16 @@ import {
   Alert,
   FlatList,
   ScrollView,
+import { getAlbumById, getSongByName } from '@/api/musicApi';
+import { Album } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -71,7 +81,87 @@ const AlbumDetailsScreen = () => {
         }),
       },
     } as never);
+const AlbumDetailsScreen = () => {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAlbum = async () => {
+      if (!params.albumId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const albumData = await getAlbumById(params.albumId as string);
+        setAlbum(albumData);
+      } catch (error) {
+        console.error('Error fetching album:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAlbum();
+  }, [params.albumId]);
+
+  const handleSongPress = async (songTitle: string) => {
+    try {
+      const song = await getSongByName(songTitle);
+      if (song) {
+        router.push({
+          pathname: '/play-audio',
+          params: {
+            song: JSON.stringify(song),
+          },
+        } as never);
+      }
+    } catch (error) {
+      console.error('Error fetching song:', error);
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      </View>
+    );
+  }
+
+  if (!album) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 16, color: '#fff' }}>Album not found</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -95,6 +185,23 @@ const AlbumDetailsScreen = () => {
           <Text style={styles.albumTitle}>{album.albumName}</Text>
           <Text style={styles.artistName}>{Array.isArray(album.artists) ? album.artists[0] : 'Unknown Artist'}</Text>
           <Text style={styles.albumMeta}>Album • {album.songs?.length || 0} songs</Text>
+            transition={200}
+            cachePolicy="memory-disk"
+          />
+        </View>
+
+        {/* Album Info */}
+        <View style={styles.albumInfo}>
+          <Text style={styles.albumTitle}>{album.albumName}</Text>
+          
+          <View style={styles.artistContainer}>
+            <Text style={styles.artistName}>{album.artists.join(', ')}</Text>
+          </View>
+
+          <Text style={styles.albumMeta}>
+            Album • {album.release}
+          </Text>
+        </View>
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
@@ -177,6 +284,31 @@ const AlbumDetailsScreen = () => {
           ) : (
             <Text style={styles.emptyText}>No songs available</Text>
           )}
+        <View style={styles.songsList}>
+          {album.songs.map((song, index) => (
+            <TouchableOpacity
+              key={song.songId || index}
+              style={styles.songItem}
+              activeOpacity={0.7}
+              onPress={() => handleSongPress(song.title)}
+            >
+              <View style={styles.songInfo}>
+                <Text style={styles.songTitle} numberOfLines={1}>
+                  {song.title}
+                </Text>
+                <Text style={styles.songArtist} numberOfLines={1}>
+                  {album.artists.join(', ')}
+                </Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.songMenuButton}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="ellipsis-vertical" size={20} color="#999" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Bottom spacing */}

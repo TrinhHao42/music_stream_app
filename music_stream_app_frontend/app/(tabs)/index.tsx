@@ -184,6 +184,7 @@ export default function HomeScreen() {
                 onPress={() => router.push({
                   pathname: '/album-details',
                   params: { album: JSON.stringify(alb) }
+                  params: { albumId: alb.albumId }
                 })}
               >
                 <Image

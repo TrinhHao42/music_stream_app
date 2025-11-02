@@ -128,6 +128,13 @@ export async function getAlbumByName(name: string): Promise<Album | null> {
     return null;
   } catch (error) {
     console.error('Error fetching album by name:', error);
+export async function getAlbumById(albumId: string): Promise<Album | null> {
+  const path = `/albums/${albumId}`;
+  try {
+    const album = await request<Album>(path);
+    return album;
+  } catch (error) {
+    console.error('Error fetching album by id:', error);
     return null;
   }
 }
@@ -139,6 +146,7 @@ export default {
   getSongByName,
   getSongById,
   getAlbumByName,
+  getAlbumById,
 };
 
 
