@@ -1,7 +1,7 @@
 type Artist = {
   artistId: string;
   artistName: string;
-  artistImg: string;
+  artistImage: string;
   albums: {
     albumName: string;
     image?: string;

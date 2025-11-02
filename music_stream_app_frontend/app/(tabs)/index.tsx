@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 
 import { getAlbums, getArtists, getSongs } from '@/api/musicApi';
@@ -16,17 +16,35 @@ export default function HomeScreen() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [forYouSongs, setForYouSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [albumsData, songsData, artistsData] = await Promise.all([
+        getAlbums(),
+        getSongs(0, 4),
+        getArtists(0, 6)
+      ]);
+      setAlbums(albumsData);
+      setForYouSongs(songsData);
+      setArtists(artistsData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   useEffect(() => {
-    getAlbums().then(setAlbums).catch(console.error);
-    getSongs(0, 4).then(setForYouSongs).catch(console.error);
-    getArtists(0, 6).then(setArtists).catch(console.error);
+    fetchData();
   }, []);
 
-
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
-  const avatarSource = isLoggedIn 
+  const avatarSource = isLoggedIn
     ? { uri: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Mason' }
     : require('@/assets/images/logo.jpg');
 
@@ -44,7 +62,7 @@ export default function HomeScreen() {
               <Text style={styles.userName}>{user?.userName || 'User'}</Text>
             </View>
           ) : (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.loginButton}
               onPress={() => router.push('/login' as any)}
             >
@@ -69,7 +87,7 @@ export default function HomeScreen() {
       {/* Search bar */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color="#8E8E93" />
-        <TextInput 
+        <TextInput
           placeholder="What you want to listen to"
           placeholderTextColor="#8E8E93"
           style={styles.searchInput}
@@ -77,13 +95,24 @@ export default function HomeScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#9333EA']}
+            tintColor="#9333EA"
+          />
+        }
+      >
         {/* Suggestions for you */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>For you</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             {forYouSongs.map((song) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={song.songId}
                 style={styles.card}
                 onPress={() => router.push({
@@ -91,8 +120,8 @@ export default function HomeScreen() {
                   params: { song: JSON.stringify(song) }
                 })}
               >
-                <Image 
-                  source={song.coverUrl ? { uri: song.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')} 
+                <Image
+                  source={song.coverUrl ? { uri: song.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')}
                   style={styles.cardImage}
                   contentFit="cover"
                   transition={0}
@@ -114,7 +143,7 @@ export default function HomeScreen() {
             <Text style={styles.seeAll}>See all</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.chartCard, { backgroundColor: '#E8D5FF' }]}
               onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Canada', subtitle: 'Daily chart-toppers update' } })}
             >
@@ -122,7 +151,7 @@ export default function HomeScreen() {
               <Text style={styles.chartCountry}>Canada</Text>
               <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.chartCard, { backgroundColor: '#E0F2FE' }]}
               onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Global', subtitle: 'Daily chart-toppers update' } })}
             >
@@ -130,7 +159,7 @@ export default function HomeScreen() {
               <Text style={styles.chartCountry}>Global</Text>
               <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.chartCard, { backgroundColor: '#FEF3C7' }]}
               onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Trending', subtitle: 'Daily chart-toppers update' } })}
             >
@@ -150,7 +179,7 @@ export default function HomeScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             {albums.map((alb) => (
               <View key={alb.albumId} style={styles.albumCard}>
-                <Image 
+                <Image
                   source={alb.image ? { uri: alb.image } : require('../../assets/images/Home - Audio Listing/Image 40.png')}
                   style={styles.albumImage}
                   contentFit="cover"
@@ -172,7 +201,7 @@ export default function HomeScreen() {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             {artists.map((artist) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={artist.artistId}
                 style={styles.artistCard}
                 onPress={() => router.push({
@@ -180,9 +209,13 @@ export default function HomeScreen() {
                   params: { artist: JSON.stringify(artist) }
                 })}
               >
-                <View style={styles.artistImagePlaceholder}>
-                  <Ionicons name="person" size={50} color="#9333EA" />
-                </View>
+                <Image
+                  source={artist.artistImage ? { uri: artist.artistImage } : require('../../assets/images/Artist Profile/Image 63.png')}
+                  style={styles.artistImagePlaceholder}
+                  contentFit="cover"
+                  transition={0}
+                  cachePolicy="memory-disk"
+                />
                 <Text style={styles.artistName}>{artist.artistName}</Text>
                 <TouchableOpacity style={styles.followButton}>
                   <Text style={styles.followButtonText}>Follow</Text>
@@ -271,14 +304,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-  
+
     marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
- 
+
     marginBottom: 12,
   },
   sectionTitle: {
