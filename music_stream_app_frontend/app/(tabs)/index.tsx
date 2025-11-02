@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 
-import { getAlbums } from '@/api/musicApi';
-import { Album } from '@/types';
+import { getAlbums, getArtists, getSongs } from '@/api/musicApi';
+import { Album, Artist, Song } from '@/types';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -14,9 +14,13 @@ export default function HomeScreen() {
   const isLoggedIn = !!user;
 
   const [albums, setAlbums] = useState<Album[]>([]);
+  const [forYouSongs, setForYouSongs] = useState<Song[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
 
   useEffect(() => {
     getAlbums().then(setAlbums).catch(console.error);
+    getSongs(0, 4).then(setForYouSongs).catch(console.error);
+    getArtists(0, 6).then(setArtists).catch(console.error);
   }, []);
 
 
@@ -78,35 +82,25 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>For you</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            <TouchableOpacity 
-              style={styles.card}
-              onPress={() => router.push('/playlist-details')}
-            >
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Image 36.png')} 
-                style={styles.cardImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Reflection</Text>
-                <Text style={styles.cardArtist}>Christina Aguilera</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.card}>
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Image 39.png')} 
-                style={styles.cardImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>In The Stars</Text>
-                <Text style={styles.cardArtist}>Benson Boone</Text>
-              </View>
-            </View>
+            {forYouSongs.map((song) => (
+              <TouchableOpacity 
+                key={song.songId}
+                style={styles.card}
+                onPress={() => router.push('/play-audio')}
+              >
+                <Image 
+                  source={song.coverUrl ? { uri: song.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')} 
+                  style={styles.cardImage}
+                  contentFit="cover"
+                  transition={0}
+                  cachePolicy="memory-disk"
+                />
+                <View style={styles.cardOverlay}>
+                  <Text style={styles.cardTitle}>{song.title}</Text>
+                  <Text style={styles.cardArtist}>{song.artist?.[0] ?? 'Unknown'}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         </View>
 
@@ -117,21 +111,30 @@ export default function HomeScreen() {
             <Text style={styles.seeAll}>See all</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            <View style={[styles.chartCard, { backgroundColor: '#E8D5FF' }]}>
+            <TouchableOpacity 
+              style={[styles.chartCard, { backgroundColor: '#E8D5FF' }]}
+              onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Canada', subtitle: 'Daily chart-toppers update' } })}
+            >
               <Text style={styles.chartNumber}>Top 50</Text>
               <Text style={styles.chartCountry}>Canada</Text>
               <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
-            </View>
-            <View style={[styles.chartCard, { backgroundColor: '#E0F2FE' }]}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.chartCard, { backgroundColor: '#E0F2FE' }]}
+              onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Global', subtitle: 'Daily chart-toppers update' } })}
+            >
               <Text style={styles.chartNumber}>Top 50</Text>
               <Text style={styles.chartCountry}>Global</Text>
               <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
-            </View>
-            <View style={[styles.chartCard, { backgroundColor: '#FEF3C7' }]}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.chartCard, { backgroundColor: '#FEF3C7' }]}
+              onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Trending', subtitle: 'Daily chart-toppers update' } })}
+            >
               <Text style={styles.chartNumber}>Top 50</Text>
               <Text style={styles.chartCountry}>Trending</Text>
               <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
-            </View>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
@@ -165,63 +168,24 @@ export default function HomeScreen() {
             <Text style={styles.seeAll}>See all</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            <TouchableOpacity 
-              style={styles.artistCard}
-              onPress={() => router.push({
-                pathname: '/artist-profile',
-                params: { name: 'Jennifer Wilson' }
-              })}
-            >
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Image 46.png')} 
-                style={styles.artistImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <Text style={styles.artistName}>Jennifer Wilson</Text>
-              <TouchableOpacity style={styles.followButton}>
-                <Text style={styles.followButtonText}>Follow</Text>
+            {artists.map((artist) => (
+              <TouchableOpacity 
+                key={artist.artistId}
+                style={styles.artistCard}
+                onPress={() => router.push({
+                  pathname: '/artist-profile',
+                  params: { name: artist.artistName }
+                })}
+              >
+                <View style={styles.artistImagePlaceholder}>
+                  <Ionicons name="person" size={50} color="#9333EA" />
+                </View>
+                <Text style={styles.artistName}>{artist.artistName}</Text>
+                <TouchableOpacity style={styles.followButton}>
+                  <Text style={styles.followButtonText}>Follow</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.artistCard}
-              onPress={() => router.push({
-                pathname: '/artist-profile',
-                params: { name: 'Elizabeth Hall' }
-              })}
-            >
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Image 47.png')} 
-                style={styles.artistImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <Text style={styles.artistName}>Elizabeth Hall</Text>
-              <TouchableOpacity style={styles.followButton}>
-                <Text style={styles.followButtonText}>Follow</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.artistCard}
-              onPress={() => router.push({
-                pathname: '/artist-profile',
-                params: { name: 'Anthony' }
-              })}
-            >
-              <Image 
-                source={require('../../assets/images/Home - Audio Listing/Avatar 3.png')} 
-                style={styles.artistImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-              <Text style={styles.artistName}>Anthony</Text>
-              <TouchableOpacity style={styles.followButton}>
-                <Text style={styles.followButtonText}>Follow</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
+            ))}
           </ScrollView>
         </View>
       </ScrollView>
@@ -410,6 +374,15 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
+    marginBottom: 12,
+  },
+  artistImagePlaceholder: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
   artistName: {
