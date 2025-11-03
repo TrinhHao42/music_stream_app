@@ -64,7 +64,7 @@ export default function HomeScreen() {
           ) : (
             <TouchableOpacity
               style={styles.loginButton}
-              onPress={() => router.push('/login' as any)}
+              onPress={() => router.push('/launch' as any)}
             >
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
@@ -140,7 +140,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Charts</Text>
-            <Text style={styles.seeAll}>See all</Text>
+            
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             <TouchableOpacity
@@ -174,7 +174,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Trending albums</Text>
-            <Text style={styles.seeAll}>See all</Text>
+            
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             {albums.map((alb) => (
@@ -204,7 +204,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Popular artists</Text>
-            <Text style={styles.seeAll}>See all</Text>
+           
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             {artists.map((artist) => (
@@ -327,10 +327,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
-  seeAll: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
+
   horizontalScroll: {
     paddingLeft: 16,
   },

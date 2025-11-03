@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import storage from './storage';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -13,7 +13,7 @@ const axiosInstance = axios.create({
 // Request interceptor to add access token to headers
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const accessToken = await SecureStore.getItemAsync('accessToken');
+    const accessToken = await storage.getItem('accessToken');
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -37,13 +37,13 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
+        const refreshToken = await storage.getItem('refreshToken');
         
         if (!refreshToken) {
           // No refresh token, redirect to login
-          await SecureStore.deleteItemAsync('accessToken');
-          await SecureStore.deleteItemAsync('refreshToken');
-          await SecureStore.deleteItemAsync('user');
+          await storage.removeItem('accessToken');
+          await storage.removeItem('refreshToken');
+          await storage.removeItem('user');
           return Promise.reject(error);
         }
 
@@ -55,9 +55,9 @@ axiosInstance.interceptors.response.use(
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
 
         // Save new tokens
-        await SecureStore.setItemAsync('accessToken', newAccessToken);
+        await storage.setItem('accessToken', newAccessToken);
         if (newRefreshToken) {
-          await SecureStore.setItemAsync('refreshToken', newRefreshToken);
+          await storage.setItem('refreshToken', newRefreshToken);
         }
 
         // Retry original request with new token
@@ -65,9 +65,9 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect to login
-        await SecureStore.deleteItemAsync('accessToken');
-        await SecureStore.deleteItemAsync('refreshToken');
-        await SecureStore.deleteItemAsync('user');
+        await storage.removeItem('accessToken');
+        await storage.removeItem('refreshToken');
+        await storage.removeItem('user');
         return Promise.reject(refreshError);
       }
     }
