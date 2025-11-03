@@ -45,20 +45,18 @@ export default function HomeScreen() {
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
   const avatarSource = isLoggedIn
-    ? { uri: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Mason' }
-    : require('@/assets/images/logo.jpg');
+    ? require('@/assets/images/logo/user-line.png')
+    : require('@/assets/images/logo/Frame1.png');
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="musical-notes" size={28} color="#9333EA" />
-          </View>
+          <Image source={require('@/assets/images/logo/Frame1.png')} style={styles.logo} />
           {isLoggedIn ? (
             <View>
-              <Text style={styles.greeting}>Good morning,</Text>
+              <Text style={styles.greeting}>Hello there,</Text>
               <Text style={styles.userName}>{user?.userName || 'User'}</Text>
             </View>
           ) : (
@@ -72,7 +70,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.headerRight}>
           <Ionicons name="notifications-outline" size={24} color="#000" />
-          <TouchableOpacity onPress={() => !isLoggedIn && router.push('/launch')}>
+          <TouchableOpacity onPress={() => router.push(isLoggedIn ? '/user' : '/launch')}>
             <Image
               source={avatarSource}
               style={styles.avatar}
@@ -287,9 +285,14 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   avatar: {
+    width: 30,
+    height: 30,
+    
+  },
+  logo: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    
   },
   searchContainer: {
     flexDirection: 'row',
