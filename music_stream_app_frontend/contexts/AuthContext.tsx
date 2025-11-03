@@ -1,6 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axiosInstance from '../utils/axiosInstance';
+import storage from '../utils/storage';
 
 interface User {
     userId: string;
@@ -46,9 +46,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const loadStoredAuth = async () => {
         try {
-            const storedAccessToken = await SecureStore.getItemAsync('accessToken');
-            const storedRefreshToken = await SecureStore.getItemAsync('refreshToken');
-            const storedUser = await SecureStore.getItemAsync('user');
+            const storedAccessToken = await storage.getItem('accessToken');
+            const storedRefreshToken = await storage.getItem('refreshToken');
+            const storedUser = await storage.getItem('user');
 
             if (storedAccessToken && storedRefreshToken && storedUser) {
                 setAccessToken(storedAccessToken);
@@ -71,10 +71,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             const { accessToken, refreshToken, user } = response.data;
 
-            // Save tokens and user to SecureStore
-            await SecureStore.setItemAsync('accessToken', accessToken);
-            await SecureStore.setItemAsync('refreshToken', refreshToken);
-            await SecureStore.setItemAsync('user', JSON.stringify(user));
+            // Save tokens and user to storage
+            await storage.setItem('accessToken', accessToken);
+            await storage.setItem('refreshToken', refreshToken);
+            await storage.setItem('user', JSON.stringify(user));
 
             // Update state
             setAccessToken(accessToken);
@@ -119,10 +119,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         try {
-            // Clear SecureStore
-            await SecureStore.deleteItemAsync('accessToken');
-            await SecureStore.deleteItemAsync('refreshToken');
-            await SecureStore.deleteItemAsync('user');
+            // Clear storage
+            await storage.removeItem('accessToken');
+            await storage.removeItem('refreshToken');
+            await storage.removeItem('user');
 
             // Clear state
             setAccessToken(null);
