@@ -13,4 +13,5 @@ public interface AlbumService {
     List<Album> findAlbumByName(String name);
     Optional<Album> update (String id, Album album);
     boolean deleteById(String id);
+    boolean updateFavourites(String id, long favourites);
 }

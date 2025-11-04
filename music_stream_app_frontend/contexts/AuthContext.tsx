@@ -1,16 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getCurrentUser } from '../api/musicApi';
+import User from '../types/User';
 import axiosInstance from '../utils/axiosInstance';
 import storage from '../utils/storage';
-import { getCurrentUser } from '../api/musicApi';
-
-interface User {
-    userId: string;
-    userName: string;
-    playlists: string[];
-    followList: string[];
-    likeList: string[];
-    favouriteAlbums: string[];
-}
 
 interface AuthContextType {
     user: User | null;

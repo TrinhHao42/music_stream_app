@@ -1,9 +1,9 @@
-import { getSongByName, addFavouriteAlbum, removeFavouriteAlbum } from '@/api/musicApi';
+import { addFavouriteAlbum, getSongByName, removeFavouriteAlbum } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 
 import {
   ActivityIndicator,
@@ -98,35 +98,60 @@ const AlbumDetailsScreen = () => {
 
   const handleToggleSave = async () => {
     if (!user) {
-      Alert.alert('Thông báo', 'Vui lòng đăng nhập để lưu album yêu thích');
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Bạn cần đăng nhập để lưu album vào danh sách yêu thích',
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel',
+          },
+          {
+            text: 'Đăng nhập',
+            onPress: () => router.push('/launch' as any),
+          },
+        ]
+      );
       return;
     }
 
+    // Optimistic update - Cập nhật UI ngay lập tức
+    const previousState = isSaved;
+    setIsSaved(!isSaved);
     setLoadingSave(true);
+
     try {
-      if (isSaved) {
+      let success = false;
+      
+      if (previousState) {
         // Xóa khỏi yêu thích
-        const success = await removeFavouriteAlbum(album.albumId);
+        const updatedUser = await removeFavouriteAlbum(user, album);
+        success = updatedUser !== null;
+        
         if (success) {
-          setIsSaved(false);
-          await refreshUserData(); // Refresh user data từ API
-          Alert.alert('Thành công', 'Đã xóa album khỏi danh sách yêu thích');
-        } else {
-          Alert.alert('Lỗi', 'Không thể xóa album khỏi danh sách yêu thích');
+          // Refresh user data ở background
+          refreshUserData().catch(console.error);
         }
       } else {
         // Thêm vào yêu thích
-        const success = await addFavouriteAlbum(album.albumId);
+        const updatedUser = await addFavouriteAlbum(user, album);
+        success = updatedUser !== null;
+        
         if (success) {
-          setIsSaved(true);
-          await refreshUserData(); // Refresh user data từ API
-          Alert.alert('Thành công', 'Đã thêm album vào danh sách yêu thích');
-        } else {
-          Alert.alert('Lỗi', 'Không thể thêm album vào danh sách yêu thích');
+          // Refresh user data ở background
+          refreshUserData().catch(console.error);
         }
+      }
+
+      if (!success) {
+        // Rollback UI nếu thất bại
+        setIsSaved(previousState);
+        Alert.alert('Lỗi', 'Không thể cập nhật. Vui lòng thử lại');
       }
     } catch (error) {
       console.error('Error toggling save:', error);
+      // Rollback UI nếu có exception
+      setIsSaved(previousState);
       Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setLoadingSave(false);
@@ -171,7 +196,7 @@ const AlbumDetailsScreen = () => {
                 <ActivityIndicator size="small" color={isSaved ? "#fff" : "#000"} />
               ) : (
                 <Text style={isSaved ? styles.savedText : styles.saveText}>
-                  {isSaved ? 'Đã lưu' : 'Lưu'}
+                  {isSaved ? 'Saved' : 'Save'}
                 </Text>
               )}
             </TouchableOpacity>

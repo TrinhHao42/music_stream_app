@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -86,16 +85,6 @@ public class AuthServiceImpl implements AuthService {
         Account account = accountRepository.findByEmail(request.getEmail());
         if (account == null) {
             throw new ResourceNotFoundException("Account", "email", request.getEmail());
-        }
-
-        // Thử query trực tiếp
-        List<User> allUsers = userRepository.findAll();
-        System.out.println("Total users in DB: " + allUsers.size());
-        if (!allUsers.isEmpty()) {
-
-            // Check xem có user nào match không
-            boolean found = allUsers.stream()
-                    .anyMatch(u -> u.getUserId().equals(account.getUserId()));
         }
 
         // Lấy thông tin user

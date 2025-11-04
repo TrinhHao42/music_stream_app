@@ -6,11 +6,15 @@ import iuh.fit.se.music_stream_app_backend.dto.request.RegisterRequest;
 import iuh.fit.se.music_stream_app_backend.dto.response.AuthResponse;
 import iuh.fit.se.music_stream_app_backend.models.User;
 import iuh.fit.se.music_stream_app_backend.service.AuthService;
+import iuh.fit.se.music_stream_app_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
@@ -49,5 +54,31 @@ public class AuthController {
         String token = authHeader.substring(7);
         authService.logout(token);
         return ResponseEntity.ok("Đăng xuất thành công");
+    }
+
+    // CRUD Operations - yêu cầu xác thực
+    @GetMapping("/users")
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(userService.findAll());
+    }
+
+    @GetMapping("/users/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable String id) {
+        Optional<User> user = userService.findById(id);
+        return user.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/users/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User user) {
+        Optional<User> updated = userService.update(id, user);
+        return updated.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        userService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
