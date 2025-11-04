@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axiosInstance from '../utils/axiosInstance';
 import storage from '../utils/storage';
+import { getCurrentUser } from '../api/musicApi';
 
 interface User {
     userId: string;
@@ -19,6 +20,7 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string, userName: string) => Promise<void>;
     logout: () => Promise<void>;
+    refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
     login: async () => { },
     register: async () => { },
     logout: async () => { },
+    refreshUserData: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -133,6 +136,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const refreshUserData = async () => {
+        try {
+            const userData = await getCurrentUser();
+            if (userData) {
+                setUser(userData);
+                await storage.setItem('user', JSON.stringify(userData));
+            }
+        } catch (error) {
+            console.error('Error refreshing user data:', error);
+        }
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -143,6 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 login,
                 register,
                 logout,
+                refreshUserData,
             }}
         >
             {children}

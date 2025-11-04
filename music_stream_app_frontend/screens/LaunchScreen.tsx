@@ -180,6 +180,15 @@ export default function LaunchScreen() {
       {/* Overlay tối */}
       <View style={styles.overlay} />
 
+      {/* Nút quay lại */}
+      <TouchableOpacity 
+        style={styles.mainBackButton}
+        onPress={() => router.back()}
+        activeOpacity={0.8}
+      >
+        <FontAwesome name="arrow-left" size={24} color="#fff" />
+      </TouchableOpacity>
+
       {/* Container chính - căn giữa tất cả */}
       <View style={styles.mainContainer}>
         {/* Logo Spotify */}
@@ -470,6 +479,18 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
+  },
+  mainBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   mainContainer: {
     flex: 1,

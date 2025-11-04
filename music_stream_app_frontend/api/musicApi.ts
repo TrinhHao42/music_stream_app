@@ -1,4 +1,6 @@
 import { Album, Artist, Song } from '@/types';
+import User from '@/types/User';
+import axiosInstance from '@/utils/axiosInstance';
 
 type PageableResponse<T> = {
   content: T[];
@@ -143,6 +145,39 @@ export async function getAlbumById(albumId: string): Promise<Album | null> {
   }
 }
 
+// Lấy thông tin user hiện tại (cần JWT token)
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const response = await axiosInstance.get('/api/users/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    return null;
+  }
+}
+
+// Thêm album vào danh sách yêu thích
+export async function addFavouriteAlbum(albumId: string): Promise<boolean> {
+  try {
+    await axiosInstance.post(`/api/users/favourites/albums/${albumId}`);
+    return true;
+  } catch (error) {
+    console.error('Error adding favourite album:', error);
+    return false;
+  }
+}
+
+// Xóa album khỏi danh sách yêu thích
+export async function removeFavouriteAlbum(albumId: string): Promise<boolean> {
+  try {
+    await axiosInstance.delete(`/api/users/favourites/albums/${albumId}`);
+    return true;
+  } catch (error) {
+    console.error('Error removing favourite album:', error);
+    return false;
+  }
+}
+
 export default {
   getAlbums,
   getSongs,
@@ -151,4 +186,7 @@ export default {
   getSongById,
   getAlbumByName,
   getAlbumById,
+  getCurrentUser,
+  addFavouriteAlbum,
+  removeFavouriteAlbum,
 };
