@@ -1,7 +1,9 @@
+import { useAuth } from '@/contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const RAW_USER = {
   _id: 'user23',
@@ -17,6 +19,8 @@ const RAW_USER = {
 };
 
 const UserScreen = () => {
+  const { logout, user: authUser } = useAuth();
+  
   const parseUser = () => {
     const ts = Number(RAW_USER.birthday?.$date?.$numberLong || 0);
     const date = ts ? new Date(ts) : undefined;
@@ -41,6 +45,29 @@ const UserScreen = () => {
   const [nameInput, setNameInput] = useState(user.name);
   const [genderInput, setGenderInput] = useState<boolean>(user.genderBool);
   const [birthdayInput, setBirthdayInput] = useState(user.birthdayISO);
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace('/launch');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const Row = ({ label, value }: { label: string; value: string | number }) => (
     <View style={styles.row}>
@@ -83,6 +110,16 @@ const UserScreen = () => {
           <Text style={styles.editText}>{showEditor ? 'Close' : 'Edit Profile'}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Logout Button */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.logoutBtn}
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
 
       {/* Stats */}
       <View style={styles.statsRow}>
@@ -196,6 +233,19 @@ const styles = StyleSheet.create({
   name: { marginTop: 10, fontSize: 18, color: '#11181C', fontWeight: '700' },
   editBtn: { marginTop: 10, backgroundColor: '#3D3D3D', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20 },
   editText: { color: 'white', fontWeight: '600' },
+
+  logoutBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: '#E53935', 
+    paddingVertical: 12, 
+    paddingHorizontal: 24, 
+    borderRadius: 10, 
+    marginTop: 12,
+    gap: 8,
+  },
+  logoutText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8, marginBottom: 16 },
   statBox: { alignItems: 'center' },

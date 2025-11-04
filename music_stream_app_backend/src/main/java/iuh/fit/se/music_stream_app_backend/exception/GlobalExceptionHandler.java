@@ -138,6 +138,19 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+            IllegalStateException ex, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
     // ==================== GENERIC EXCEPTION ====================
 
     @ExceptionHandler(Exception.class)
@@ -153,4 +166,3 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
-

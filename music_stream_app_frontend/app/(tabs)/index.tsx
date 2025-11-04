@@ -72,7 +72,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.headerRight}>
           <Ionicons name="notifications-outline" size={24} color="#000" />
-          <TouchableOpacity onPress={() => !isLoggedIn && router.push('/launch')}>
+          <TouchableOpacity onPress={() => !isLoggedIn ? router.push('/launch') : router.push('/user')}>
             <Image
               source={avatarSource}
               style={styles.avatar}

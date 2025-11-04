@@ -1,7 +1,10 @@
 package iuh.fit.se.music_stream_app_backend.controller;
 
+import iuh.fit.se.music_stream_app_backend.dto.response.UpgradeResponse;
 import iuh.fit.se.music_stream_app_backend.service.AccountService;
 import iuh.fit.se.music_stream_app_backend.models.Account;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/accounts")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
+@Tag(name = "Account Controller", description = "APIs for managing user accounts")
 public class AccountController {
     AccountService accountService;
 
@@ -54,5 +58,21 @@ public class AccountController {
 	public ResponseEntity<Void> delete(@PathVariable String id) {
 		accountService.deleteById(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/upgrade/{userId}")
+	@Operation(summary = "Upgrade to Premium", description = "Upgrade user account from STANDARD to PREMIUM")
+	public ResponseEntity<UpgradeResponse> upgradeToPremium(@PathVariable String userId) {
+		Account upgradedAccount = accountService.upgradeToPremium(userId);
+
+		UpgradeResponse response = UpgradeResponse.builder()
+				.accountId(upgradedAccount.getAccountId())
+				.userId(upgradedAccount.getUserId())
+				.email(upgradedAccount.getEmail())
+				.type(upgradedAccount.getType())
+				.message("Account successfully upgraded to PREMIUM")
+				.build();
+
+		return ResponseEntity.ok(response);
 	}
 }

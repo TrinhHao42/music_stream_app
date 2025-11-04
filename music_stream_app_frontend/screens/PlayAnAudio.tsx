@@ -1,3 +1,5 @@
+import { addSongToLibrary, addSongToPlaylist, getLibrary, getUserPlaylists } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMiniPlayer } from '@/contexts/MiniPlayerContext';
 import Song from '@/types/Song';
 import formatCompactNumber from '@/utils/FormatCompactNumber';
@@ -7,7 +9,7 @@ import Feather from '@expo/vector-icons/Feather';
 import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, ImageBackground, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function PlayAnAudio() {
   const router = useRouter();
@@ -33,6 +35,12 @@ export default function PlayAnAudio() {
   const [isDraggingSlider, setIsDraggingSlider] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [hasEnded, setHasEnded] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+  
+  const { user } = useAuth();
 
   // Parse song from params với error handling
   if (!params.song) {
@@ -128,6 +136,75 @@ export default function PlayAnAudio() {
     await seekTo(0);
     setHasEnded(false);
     await playSound();
+  };
+
+  const handleAddToLibrary = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Please login to add songs to library');
+      return;
+    }
+
+    try {
+      // Check if song already in library
+      const library = await getLibrary(user.userId);
+      if (library) {
+        const alreadyInLibrary = library.favouriteSongs.some((s: Song) => s.songId === song.songId);
+        
+        if (alreadyInLibrary) {
+          Alert.alert('Info', 'Song is already in your library');
+          setMenuVisible(false);
+          return;
+        }
+      }
+
+      const success = await addSongToLibrary(user.userId, song.songId);
+      if (success) {
+        Alert.alert('Success', 'Song added to library');
+        setMenuVisible(false);
+      } else {
+        Alert.alert('Error', 'Failed to add song to library');
+      }
+    } catch (error) {
+      console.error('Error adding to library:', error);
+      Alert.alert('Error', 'Failed to add song to library');
+    }
+  };
+
+  const handleAddToPlaylistPress = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Please login to add songs to playlist');
+      return;
+    }
+
+    setMenuVisible(false);
+    setLoadingPlaylists(true);
+    setPlaylistModalVisible(true);
+    
+    try {
+      const userPlaylists = await getUserPlaylists(user.userId);
+      setPlaylists(userPlaylists);
+    } catch (error) {
+      console.error('Error loading playlists:', error);
+      Alert.alert('Error', 'Failed to load playlists');
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
+  const handleSelectPlaylist = async (playlistId: string) => {
+    setPlaylistModalVisible(false);
+    
+    try {
+      const success = await addSongToPlaylist(playlistId, song.songId);
+      if (success) {
+        Alert.alert('Success', 'Song added to playlist');
+      } else {
+        Alert.alert('Error', 'Failed to add song to playlist');
+      }
+    } catch (error) {
+      console.error('Error adding to playlist:', error);
+      Alert.alert('Error', 'Failed to add song to playlist');
+    }
   };
 
   const formatTime = (millis: number) => {
@@ -267,7 +344,10 @@ export default function PlayAnAudio() {
               <Ionicons name="play-forward" size={32} color="#fff" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.controlButton}>
+            <TouchableOpacity 
+              style={styles.controlButton}
+              onPress={() => setMenuVisible(true)}
+            >
               <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -296,6 +376,88 @@ export default function PlayAnAudio() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Menu Modal */}
+        <Modal
+          visible={menuVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMenuVisible(false)}
+        >
+          <TouchableOpacity 
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={() => setMenuVisible(false)}
+          >
+            <View style={styles.menuContent}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleAddToLibrary}
+              >
+                <Ionicons name="heart-outline" size={24} color="#11181C" />
+                <Text style={styles.menuText}>Add to Library</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleAddToPlaylistPress}
+              >
+                <Ionicons name="add-circle-outline" size={24} color="#11181C" />
+                <Text style={styles.menuText}>Add to Playlist</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                onPress={() => setMenuVisible(false)}
+              >
+                <Ionicons name="close-circle-outline" size={24} color="#E53935" />
+                <Text style={[styles.menuText, { color: '#E53935' }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Playlist Selection Modal */}
+        <Modal
+          visible={playlistModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setPlaylistModalVisible(false)}
+        >
+          <View style={styles.playlistModalOverlay}>
+            <View style={styles.playlistModalContent}>
+              <Text style={styles.playlistModalTitle}>Add to Playlist</Text>
+              
+              {loadingPlaylists ? (
+                <ActivityIndicator size="large" color="#1ce5ff" />
+              ) : (
+                <FlatList
+                  data={playlists}
+                  keyExtractor={(item) => item.playlistId}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.playlistItem}
+                      onPress={() => handleSelectPlaylist(item.playlistId)}
+                    >
+                      <Text style={styles.playlistItemName}>{item.playlistName}</Text>
+                      <Text style={styles.playlistItemSongs}>{item.songs?.length || 0} songs</Text>
+                    </TouchableOpacity>
+                  )}
+                  ListEmptyComponent={
+                    <Text style={styles.emptyPlaylistText}>No playlists found. Create one first!</Text>
+                  }
+                />
+              )}
+              
+              <TouchableOpacity
+                style={styles.closePlaylistBtn}
+                onPress={() => setPlaylistModalVisible(false)}
+              >
+                <Text style={styles.closePlaylistBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ImageBackground>
     </View>
   );
@@ -458,5 +620,80 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  menuContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E6E8EB',
+  },
+  menuText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#11181C',
+  },
+  playlistModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  playlistModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  playlistModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  playlistItem: {
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#eee',
+  },
+  playlistItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#11181C',
+  },
+  playlistItemSongs: {
+    fontSize: 13,
+    color: '#687076',
+    marginTop: 2,
+  },
+  emptyPlaylistText: {
+    textAlign: 'center',
+    color: '#687076',
+    marginVertical: 20,
+  },
+  closePlaylistBtn: {
+    marginTop: 16,
+    backgroundColor: '#E6E8EB',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  closePlaylistBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#11181C',
   },
 });

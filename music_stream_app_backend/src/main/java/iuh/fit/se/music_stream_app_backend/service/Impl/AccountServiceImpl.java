@@ -1,6 +1,8 @@
 package iuh.fit.se.music_stream_app_backend.service.Impl;
 
+import iuh.fit.se.music_stream_app_backend.exception.ResourceNotFoundException;
 import iuh.fit.se.music_stream_app_backend.models.Account;
+import iuh.fit.se.music_stream_app_backend.models.enums.Type;
 import iuh.fit.se.music_stream_app_backend.repository.AccountRepository;
 import java.util.List;
 import java.util.Optional;
@@ -8,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -49,5 +52,22 @@ public class AccountServiceImpl implements iuh.fit.se.music_stream_app_backend.s
 	@Override
 	public void deleteById(String id) {
 		accountRepository.deleteById(id);
+	}
+
+	@Override
+	@Transactional
+	public Account upgradeToPremium(String userId) {
+		// Find account by userId
+		Account account = accountRepository.findByUserId(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("Account", "userId", userId));
+
+		// Check if already premium
+		if (account.getType() == Type.PREMIUM) {
+			throw new IllegalStateException("User is already a Premium member");
+		}
+
+		// Upgrade to premium
+		account.setType(Type.PREMIUM);
+		return accountRepository.save(account);
 	}
 }
