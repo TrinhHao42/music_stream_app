@@ -65,4 +65,13 @@ public class AlbumServiceImpl implements AlbumService {
         albumRepository.deleteById(id);
         return true;
     }
+
+    @Override
+    public boolean updateFavourites(String id, long favourites) {
+        Album album = albumRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Album", "id", id));
+        album.setFavourites(favourites);
+        albumRepository.save(album);
+        return true;
+    }
 }

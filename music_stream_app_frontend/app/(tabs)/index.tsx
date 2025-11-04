@@ -1,12 +1,20 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useAuth } from "../../contexts/AuthContext";
 
-import { getAlbums, getArtists, getSongs } from '@/api/musicApi';
-import { Album, Artist, Song } from '@/types';
+import { getAlbums, getArtists, getSongs } from "@/api/musicApi";
+import { Album, Artist, Song } from "@/types";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -23,13 +31,13 @@ export default function HomeScreen() {
       const [albumsData, songsData, artistsData] = await Promise.all([
         getAlbums(),
         getSongs(0, 4),
-        getArtists(0, 6)
+        getArtists(0, 6),
       ]);
       setAlbums(albumsData);
       setForYouSongs(songsData);
       setArtists(artistsData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     }
   };
 
@@ -45,26 +53,34 @@ export default function HomeScreen() {
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
   const avatarSource = isLoggedIn
-    ? { uri: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Mason' }
-    : require('@/assets/images/logo.jpg');
+    ? require("@/assets/images/logo/user-line.png")
+    : require("@/assets/images/logo/Frame1.png");
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="musical-notes" size={28} color="#9333EA" />
-          </View>
+          <Image
+            source={require("@/assets/images/logo/Frame1.png")}
+            style={styles.logo}
+          />
           {isLoggedIn ? (
             <View>
-              <Text style={styles.greeting}>Good morning,</Text>
-              <Text style={styles.userName}>{user?.userName || 'User'}</Text>
+              <Text style={styles.greeting}>Hello there,</Text>
+              <Text
+                
+                style={styles.userName}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {user?.userName || "User"}
+              </Text>
             </View>
           ) : (
             <TouchableOpacity
               style={styles.loginButton}
-              onPress={() => router.push('/launch' as any)}
+              onPress={() => router.push("/launch" as any)}
             >
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
@@ -72,7 +88,9 @@ export default function HomeScreen() {
         </View>
         <View style={styles.headerRight}>
           <Ionicons name="notifications-outline" size={24} color="#000" />
-          <TouchableOpacity onPress={() => !isLoggedIn && router.push('/launch')}>
+          <TouchableOpacity
+            onPress={() => router.push(isLoggedIn ? "/user" : "/launch")}
+          >
             <Image
               source={avatarSource}
               style={styles.avatar}
@@ -102,7 +120,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#9333EA']}
+            colors={["#9333EA"]}
             tintColor="#9333EA"
           />
         }
@@ -110,18 +128,28 @@ export default function HomeScreen() {
         {/* Suggestions for you */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>For you</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+          >
             {forYouSongs.map((song) => (
               <TouchableOpacity
                 key={song.songId}
                 style={styles.card}
-                onPress={() => router.push({
-                  pathname: '/play-audio',
-                  params: { song: JSON.stringify(song) }
-                })}
+                onPress={() =>
+                  router.push({
+                    pathname: "/play-audio",
+                    params: { song: JSON.stringify(song) },
+                  })
+                }
               >
                 <Image
-                  source={song.coverUrl ? { uri: song.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')}
+                  source={
+                    song.coverUrl
+                      ? { uri: song.coverUrl }
+                      : require("../../assets/images/Home - Audio Listing/Image 36.png")
+                  }
                   style={styles.cardImage}
                   contentFit="cover"
                   transition={0}
@@ -129,7 +157,9 @@ export default function HomeScreen() {
                 />
                 <View style={styles.cardOverlay}>
                   <Text style={styles.cardTitle}>{song.title}</Text>
-                  <Text style={styles.cardArtist}>{song.artist?.[0] ?? 'Unknown'}</Text>
+                  <Text style={styles.cardArtist}>
+                    {song.artist?.[0] ?? "Unknown"}
+                  </Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -140,32 +170,65 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Charts</Text>
-            
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+          >
             <TouchableOpacity
-              style={[styles.chartCard, { backgroundColor: '#E8D5FF' }]}
-              onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Canada', subtitle: 'Daily chart-toppers update' } })}
+              style={[styles.chartCard, { backgroundColor: "#E8D5FF" }]}
+              onPress={() =>
+                router.push({
+                  pathname: "/playlist-details",
+                  params: {
+                    title: "Top 50 - Canada",
+                    subtitle: "Daily chart-toppers update",
+                  },
+                })
+              }
             >
               <Text style={styles.chartNumber}>Top 50</Text>
               <Text style={styles.chartCountry}>Canada</Text>
-              <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
+              <Text style={styles.chartSubtitle}>
+                Daily chart-toppers update
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.chartCard, { backgroundColor: '#E0F2FE' }]}
-              onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Global', subtitle: 'Daily chart-toppers update' } })}
+              style={[styles.chartCard, { backgroundColor: "#E0F2FE" }]}
+              onPress={() =>
+                router.push({
+                  pathname: "/playlist-details",
+                  params: {
+                    title: "Top 50 - Global",
+                    subtitle: "Daily chart-toppers update",
+                  },
+                })
+              }
             >
               <Text style={styles.chartNumber}>Top 50</Text>
               <Text style={styles.chartCountry}>Global</Text>
-              <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
+              <Text style={styles.chartSubtitle}>
+                Daily chart-toppers update
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.chartCard, { backgroundColor: '#FEF3C7' }]}
-              onPress={() => router.push({ pathname: '/playlist-details', params: { title: 'Top 50 - Trending', subtitle: 'Daily chart-toppers update' } })}
+              style={[styles.chartCard, { backgroundColor: "#FEF3C7" }]}
+              onPress={() =>
+                router.push({
+                  pathname: "/playlist-details",
+                  params: {
+                    title: "Top 50 - Trending",
+                    subtitle: "Daily chart-toppers update",
+                  },
+                })
+              }
             >
               <Text style={styles.chartNumber}>Top 50</Text>
               <Text style={styles.chartCountry}>Trending</Text>
-              <Text style={styles.chartSubtitle}>Daily chart-toppers update</Text>
+              <Text style={styles.chartSubtitle}>
+                Daily chart-toppers update
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -174,27 +237,38 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Trending albums</Text>
-            
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+          >
             {albums.map((alb) => (
               <TouchableOpacity
                 key={alb.albumId}
                 style={styles.albumCard}
-                onPress={() => router.push({
-                  pathname: '/album-details',
-                  params: { album: JSON.stringify(alb) }
-                })}
+                onPress={() =>
+                  router.push({
+                    pathname: "/album-details",
+                    params: { album: JSON.stringify(alb) },
+                  })
+                }
               >
                 <Image
-                  source={alb.image ? { uri: alb.image } : require('../../assets/images/Home - Audio Listing/Image 40.png')}
+                  source={
+                    alb.image
+                      ? { uri: alb.image }
+                      : require("../../assets/images/Home - Audio Listing/Image 40.png")
+                  }
                   style={styles.albumImage}
                   contentFit="cover"
                   transition={0}
                   cachePolicy="memory-disk"
                 />
                 <Text style={styles.albumTitle}>{alb.albumName}</Text>
-                <Text style={styles.albumArtist}>{alb.artists?.[0] ?? 'Unknown'}</Text>
+                <Text style={styles.albumArtist}>
+                  {alb.artists?.[0] ?? "Unknown"}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -204,20 +278,29 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Popular artists</Text>
-           
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+          >
             {artists.map((artist) => (
               <TouchableOpacity
                 key={artist.artistId}
                 style={styles.artistCard}
-                onPress={() => router.push({
-                  pathname: '/artist-profile',
-                  params: { artist: JSON.stringify(artist) }
-                })}
+                onPress={() =>
+                  router.push({
+                    pathname: "/artist-profile",
+                    params: { artist: JSON.stringify(artist) },
+                  })
+                }
               >
                 <Image
-                  source={artist.artistImage ? { uri: artist.artistImage } : require('../../assets/images/Artist Profile/Image 63.png')}
+                  source={
+                    artist.artistImage
+                      ? { uri: artist.artistImage }
+                      : require("../../assets/images/Artist Profile/Image 63.png")
+                  }
                   style={styles.artistImagePlaceholder}
                   contentFit="cover"
                   transition={0}
@@ -239,62 +322,66 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     paddingTop: 50,
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3E8FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F3E8FF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   greeting: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#000",
+    maxWidth: 200,
   },
   loginButton: {
-    backgroundColor: '#9333EA',
+    backgroundColor: "#9333EA",
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 25,
   },
   loginButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 16,
   },
   avatar: {
+    width: 30,
+    height: 30,
+  },
+  logo: {
     width: 40,
     height: 40,
-    borderRadius: 20,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
     borderRadius: 25,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -305,27 +392,26 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#000',
+    color: "#000",
   },
   content: {
     flex: 1,
   },
   section: {
-
     marginBottom: 24,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
 
     marginBottom: 12,
   },
   sectionTitle: {
     padding: 16,
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
 
   horizontalScroll: {
@@ -336,30 +422,30 @@ const styles = StyleSheet.create({
     height: 250,
     borderRadius: 12,
     marginRight: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   cardImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   cardOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(147, 51, 234, 0.8)',
+    backgroundColor: "rgba(147, 51, 234, 0.8)",
     padding: 12,
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 4,
   },
   cardArtist: {
     fontSize: 14,
-    color: '#fff',
+    color: "#fff",
   },
   chartCard: {
     width: 180,
@@ -367,23 +453,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginRight: 12,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   chartNumber: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
     marginBottom: 4,
   },
   chartCountry: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
     marginBottom: 8,
   },
   chartSubtitle: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
   },
   albumCard: {
     width: 160,
@@ -397,18 +483,18 @@ const styles = StyleSheet.create({
   },
   albumTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
     marginBottom: 4,
   },
   albumArtist: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   artistCard: {
     width: 140,
     marginRight: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   artistImage: {
     width: 140,
@@ -420,27 +506,27 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: '#F3E8FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F3E8FF",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
   },
   artistName: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   followButton: {
-    backgroundColor: '#000',
+    backgroundColor: "#000",
     paddingHorizontal: 24,
     paddingVertical: 8,
     borderRadius: 20,
   },
   followButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

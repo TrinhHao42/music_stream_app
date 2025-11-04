@@ -58,4 +58,14 @@ public class AlbumController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @PutMapping("/updateFavourites/{id}")
+    public ResponseEntity<Void> updateFavourites(@PathVariable String id, @RequestParam long favourites) {
+        boolean updated = albumService.updateFavourites(id, favourites);
+        if (updated) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

@@ -1,11 +1,13 @@
-import { getSongByName } from '@/api/musicApi';
+import { addFavouriteAlbum, getSongByName, removeFavouriteAlbum } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,10 +20,33 @@ import { Album } from '@/types';
 const AlbumDetailsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ album: string }>();
+  const { user, refreshUserData } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
+  const [loadingSave, setLoadingSave] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
 
-  // Parse album from params
+  // Parse album from params - xử lý trước hooks
+  let album: Album | null = null;
+  let parseError = false;
+
+  if (params.album) {
+    try {
+      album = JSON.parse(params.album as string);
+    } catch (error) {
+      console.error('Error parsing album:', error);
+      parseError = true;
+    }
+  }
+
+  // Kiểm tra album có trong danh sách yêu thích không
+  useEffect(() => {
+    if (album && user && user.favouriteAlbums) {
+      setIsSaved(user.favouriteAlbums.includes(album.albumId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, album?.albumId]);
+
+  // Early returns sau hooks
   if (!params.album) {
     return (
       <View style={styles.container}>
@@ -37,11 +62,7 @@ const AlbumDetailsScreen = () => {
     );
   }
 
-  let album: Album;
-  try {
-    album = JSON.parse(params.album as string);
-  } catch (error) {
-    console.error('Error parsing album:', error);
+  if (parseError || !album) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -72,6 +93,68 @@ const AlbumDetailsScreen = () => {
       console.error('Error fetching song:', error);
     } finally {
       setLoadingSongTitle(null);
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!user) {
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Bạn cần đăng nhập để lưu album vào danh sách yêu thích',
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel',
+          },
+          {
+            text: 'Đăng nhập',
+            onPress: () => router.push('/launch' as any),
+          },
+        ]
+      );
+      return;
+    }
+
+    // Optimistic update - Cập nhật UI ngay lập tức
+    const previousState = isSaved;
+    setIsSaved(!isSaved);
+    setLoadingSave(true);
+
+    try {
+      let success = false;
+      
+      if (previousState) {
+        // Xóa khỏi yêu thích
+        const updatedUser = await removeFavouriteAlbum(user, album);
+        success = updatedUser !== null;
+        
+        if (success) {
+          // Refresh user data ở background
+          refreshUserData().catch(console.error);
+        }
+      } else {
+        // Thêm vào yêu thích
+        const updatedUser = await addFavouriteAlbum(user, album);
+        success = updatedUser !== null;
+        
+        if (success) {
+          // Refresh user data ở background
+          refreshUserData().catch(console.error);
+        }
+      }
+
+      if (!success) {
+        // Rollback UI nếu thất bại
+        setIsSaved(previousState);
+        Alert.alert('Lỗi', 'Không thể cập nhật. Vui lòng thử lại');
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      // Rollback UI nếu có exception
+      setIsSaved(previousState);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
+    } finally {
+      setLoadingSave(false);
     }
   };
 
@@ -106,11 +189,16 @@ const AlbumDetailsScreen = () => {
           <View style={styles.actionButtons}>
             <TouchableOpacity 
               style={isSaved ? styles.savedButton : styles.saveButton}
-              onPress={() => setIsSaved(!isSaved)}
+              onPress={handleToggleSave}
+              disabled={loadingSave}
             >
-              <Text style={isSaved ? styles.savedText : styles.saveText}>
-                {isSaved ? 'Saved' : 'Save'}
-              </Text>
+              {loadingSave ? (
+                <ActivityIndicator size="small" color={isSaved ? "#fff" : "#000"} />
+              ) : (
+                <Text style={isSaved ? styles.savedText : styles.saveText}>
+                  {isSaved ? 'Saved' : 'Save'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.iconButton}>
