@@ -1,5 +1,6 @@
 package iuh.fit.se.music_stream_app_backend.service.Impl;
 
+import iuh.fit.se.music_stream_app_backend.exception.ResourceNotFoundException;
 import iuh.fit.se.music_stream_app_backend.models.Album;
 import iuh.fit.se.music_stream_app_backend.repository.AlbumRepository;
 import iuh.fit.se.music_stream_app_backend.service.AlbumService;
@@ -28,7 +29,8 @@ public class AlbumServiceImpl implements AlbumService {
 
     @Override
     public Album findAlbumById(String id) {
-        return albumRepository.findById(id).orElse(null);
+        return albumRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Album", "id", id));
     }
 
     @Override
@@ -57,10 +59,19 @@ public class AlbumServiceImpl implements AlbumService {
 
     @Override
     public boolean deleteById(String id) {
-        if (albumRepository.existsById(id)) {
-            albumRepository.deleteById(id);
-            return true;
+        if (!albumRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Album", "id", id);
         }
-        return false;
+        albumRepository.deleteById(id);
+        return true;
+    }
+
+    @Override
+    public boolean updateFavourites(String id, long favourites) {
+        Album album = albumRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Album", "id", id));
+        album.setFavourites(favourites);
+        albumRepository.save(album);
+        return true;
     }
 }

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMiniPlayer } from '../contexts/MiniPlayerContext';
 
@@ -11,6 +12,7 @@ export default function MiniPlayer() {
     isMinimized, 
     setIsMinimized, 
     currentSong,
+    closeMiniPlayer,
     isPlaying,
     playSound,
     pauseSound,
@@ -21,6 +23,16 @@ export default function MiniPlayer() {
 
   const [isDraggingSlider, setIsDraggingSlider] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
+  const [hasEnded, setHasEnded] = useState(false);
+
+  // Kiểm tra khi audio kết thúc
+  useEffect(() => {
+    if (duration > 0 && position >= duration - 100) {
+      setHasEnded(true);
+    } else if (hasEnded && position < duration - 1000) {
+      setHasEnded(false);
+    }
+  }, [position, duration, hasEnded]);
 
   if (!isMinimized || !currentSong) {
     return null;
@@ -28,13 +40,17 @@ export default function MiniPlayer() {
 
   const handleExpand = () => {
     setIsMinimized(false);
-    router.push({
-      pathname: '/play-audio',
-      params: {
-        title: currentSong.title,
-        artist: currentSong.artist,
-      },
-    });
+    if (currentSong.fullSong) {
+      router.push({
+        pathname: '/play-audio',
+        params: {
+          song: JSON.stringify(currentSong.fullSong),
+        },
+      });
+    } else {
+      // Fallback nếu không có fullSong
+      router.push('/play-audio');
+    }
   };
 
   const togglePlayPause = async (e: any) => {
@@ -44,6 +60,13 @@ export default function MiniPlayer() {
     } else {
       await playSound();
     }
+  };
+
+  const handleReplay = async (e: any) => {
+    e.stopPropagation();
+    await seekTo(0);
+    setHasEnded(false);
+    await playSound();
   };
 
   return (
@@ -62,7 +85,9 @@ export default function MiniPlayer() {
             setIsDraggingSlider(true);
           }}
           onSlidingComplete={(value) => {
-            seekTo(value);
+            if (duration > 0) {
+              seekTo(value);
+            }
             setIsDraggingSlider(false);
           }}
           minimumTrackTintColor="#1DB954"
@@ -99,13 +124,27 @@ export default function MiniPlayer() {
 
         <TouchableOpacity 
           style={styles.iconButton}
-          onPress={togglePlayPause}
+          onPress={hasEnded ? handleReplay : togglePlayPause}
         >
-          <Ionicons 
-            name={isPlaying ? 'pause' : 'play'} 
-            size={24} 
-            color="#fff" 
-          />
+          {hasEnded ? (
+            <AntDesign name="reload" size={24} color="#fff" />
+          ) : (
+            <Ionicons 
+              name={isPlaying ? 'pause' : 'play'} 
+              size={24} 
+              color="#fff" 
+            />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.closeButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            closeMiniPlayer();
+          }}
+        >
+          <Ionicons name="close" size={20} color="#999" />
         </TouchableOpacity>
       </TouchableOpacity>
     </View>
@@ -164,6 +203,12 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },

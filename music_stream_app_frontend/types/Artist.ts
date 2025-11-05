@@ -1,7 +1,16 @@
 type Artist = {
-  id: string;
-  name: string;
-  image: any;
+  artistId: string;
+  artistName: string;
+  artistImage: string;
+  albums: {
+    albumName: string;
+    image?: string;
+  }[] | null;
+  songs: {
+    songId: string;
+    title: string;
+    coverUrl?: string;
+  }[];
   followers: number;
   type: 'artist';
 };

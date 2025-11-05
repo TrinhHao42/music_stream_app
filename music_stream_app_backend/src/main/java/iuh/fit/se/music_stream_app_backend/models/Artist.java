@@ -23,6 +23,10 @@ public class Artist {
     @JsonProperty("artistName")
     private String artistName;
 
+    @Field("artistImage")
+    @JsonProperty("artistImage")
+    private String artistImage;
+
     private List<AlbumEmbedded> albums;
     private List<SongEmbedded> songs;
     private long followers;

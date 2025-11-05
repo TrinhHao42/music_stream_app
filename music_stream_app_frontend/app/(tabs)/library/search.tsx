@@ -3,7 +3,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useDebounce } from 'use-debounce';
 
 type SearchResult = Song | Album | Artist;
@@ -15,49 +15,15 @@ const SearchScreen = () => {
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [debouncedSearchText] = useDebounce(searchText, 300);
-
-  const data: SearchResult[] = [
-    {
-      id: '1',
-      name: 'Mer Waston',
-      image: require('@/assets/images/My Library/Image 107.png'),
-      followers: 2300000,
-      type: 'artist',
-    },
-    {
-      id: '2',
-      title: 'FLOWER',
-      image: require('@/assets/images/My Library/Image 101.png'),
-      artistName: 'Jessica Gonzalez',
-      views: 1000000,
-      duration: '3:15',
-      type: 'song',
-    },
-    {
-      id: '3',
-      title: 'Shape of You',
-      image: require('@/assets/images/My Library/Image 102.png'),
-      artistName: 'Anthony Taylor',
-      views: 1500000,
-      duration: '4:24',
-      type: 'song',
-    },
-    {
-      id: '4',
-      title: 'Blinding Lights',
-      artistName: 'Ashley Scott',
-      numOfSongs: 4,
-      image: require('@/assets/images/My Library/Image 103.png'),
-      type: 'album',
-    },
-  ];
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchData, setSearchData] = useState<SearchResult[]>([]);
 
   useEffect(() => {
     if (debouncedSearchText) {
-      const filteredResults = data.filter(item =>
-        'name' in item
-          ? item.name.toLowerCase().includes(debouncedSearchText.toLowerCase())
-          : item.title.toLowerCase().includes(debouncedSearchText.toLowerCase())
+      const filteredResults = searchData.filter(item =>
+        item.type === 'artist' ? item.artistName :
+          item.type === 'song' ? item.title :
+            item.albumName
       );
       setResults(filteredResults);
     } else {
@@ -68,6 +34,20 @@ const SearchScreen = () => {
   const handleResetInput = () => {
     setSearchText('');
     inputSearchRef.current?.clear();
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Re-filter results
+    if (debouncedSearchText) {
+      const filteredResults = searchData.filter(item =>
+        item.type === 'artist' ? item.artistName :
+          item.type === 'song' ? item.title :
+            item.albumName
+      );
+      setResults(filteredResults);
+    }
+    setRefreshing(false);
   };
 
   return (
@@ -106,12 +86,23 @@ const SearchScreen = () => {
 
       <FlatList
         data={results}
-        keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#9333EA"
+            colors={['#9333EA']}
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.row} activeOpacity={0.7}>
             <Text style={styles.title}>
-              {'name' in item ? item.name : item.title}
+              {
+                item.type === 'artist' ? item.artistName :
+                  item.type === 'song' ? item.title :
+                    item.albumName
+              }
             </Text>
           </TouchableOpacity>
         )}

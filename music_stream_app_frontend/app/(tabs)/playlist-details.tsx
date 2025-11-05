@@ -1,70 +1,55 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// Dữ liệu mẫu
-const playlistData = {
-  title: 'Top 50 - Canada',
-  likes: 1234,
-  duration: '05:10:18',
-  description: 'Daily chart-toppers update',
-  image: require('../../assets/images/Playlist Details - Audio Listing/Image 50.png'),
+import { getSongs } from '@/api/musicApi';
+import { Song } from '@/types';
+
+const formatDuration = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const songs = [
-  {
-    id: 1,
-    title: 'FLOWER',
-    artist: 'Jessica Gonzalez',
-    views: '2,1M',
-    duration: '3:36',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 51.png'),
-  },
-  {
-    id: 2,
-    title: 'Shape of You',
-    artist: 'Anthony Taylor',
-    views: '68M',
-    duration: '03:35',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 52.png'),
-  },
-  {
-    id: 3,
-    title: 'Blinding Lights',
-    artist: 'Brian Bailey',
-    views: '93M',
-    duration: '04:39',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 53.png'),
-  },
-  {
-    id: 4,
-    title: 'Levitating',
-    artist: 'Anthony Taylor',
-    views: '9M',
-    duration: '07:48',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 54.png'),
-  },
-  {
-    id: 5,
-    title: 'Astronaut in the Ocean',
-    artist: 'Pedro Moreno',
-    views: '23M',
-    duration: '3:36',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 55.png'),
-  },
-  {
-    id: 6,
-    title: 'Dynamite',
-    artist: 'Elena Jimenez',
-    views: '10M',
-    duration: '06:22',
-    image: require('../../assets/images/Playlist Details - Audio Listing/Image 56.png'),
-  },
-];
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+};
 
 export default function PlaylistDetails() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ title: string; subtitle?: string }>();
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const data = await getSongs(0, 50);
+      setSongs(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
+  const totalDuration = songs.reduce((sum, song) => sum + song.duration, 0);
+  const totalDurationStr = formatDuration(totalDuration);
 
   return (
     <View style={styles.container}>
@@ -81,19 +66,20 @@ export default function PlaylistDetails() {
       {/* Playlist Info */}
       <View style={styles.playlistInfo}>
         <View style={styles.playlistImageContainer}>
-          <Image source={playlistData.image} style={styles.playlistImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
+          <View style={styles.playlistImagePlaceholder}>
+            <Ionicons name="musical-notes" size={60} color="#9333EA" />
+          </View>
         </View>
         <View style={styles.playlistDetails}>
-          <Text style={styles.playlistTitle}>{playlistData.title}</Text>
+          <Text style={styles.playlistTitle}>{params.title || 'Top 50'}</Text>
           <View style={styles.playlistMeta}>
             <View style={styles.metaItem}>
-              <Ionicons name="heart-outline" size={16} color="#60A5FA" />
-              <Text style={styles.metaText}>{playlistData.likes.toLocaleString()}</Text>
+              <Text style={styles.metaText}>{songs.length} songs</Text>
             </View>
             <Text style={styles.dot}>•</Text>
-            <Text style={styles.metaText}>{playlistData.duration}</Text>
+            <Text style={styles.metaText}>{totalDurationStr}</Text>
           </View>
-          <Text style={styles.description}>{playlistData.description}</Text>
+          <Text style={styles.description}>{params.subtitle || 'Daily chart-toppers update'}</Text>
         </View>
       </View>
 
@@ -117,30 +103,38 @@ export default function PlaylistDetails() {
       <FlatList
         data={songs}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#9333EA"
+            colors={['#9333EA']}
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.songItem}
-            onPress={() => router.push({ pathname: '/play-audio', params: { title: item.title, artist: item.artist, duration: item.duration } })}
+            onPress={() => router.push({ pathname: '/play-audio', params: { song: JSON.stringify(item) } })}
           >
-            <Image source={item.image} style={styles.songImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
+            <Image source={item.coverUrl ? { uri: item.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')} style={styles.songImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
             <View style={styles.songInfo}>
               <Text style={styles.songTitle}>{item.title}</Text>
-              <Text style={styles.songArtist}>{item.artist}</Text>
+              <Text style={styles.songArtist}>{item.artist.join(', ')}</Text>
             </View>
             <View style={styles.songMeta}>
               <View style={styles.playInfo}>
                 <Ionicons name="play" size={12} color="#666" />
-                <Text style={styles.playText}>{item.views}</Text>
+                <Text style={styles.playText}>{formatNumber(item.listens)}</Text>
               </View>
               <Text style={styles.dot}>•</Text>
-              <Text style={styles.songDuration}>{item.duration}</Text>
+              <Text style={styles.songDuration}>{formatDuration(item.duration)}</Text>
             </View>
             <TouchableOpacity>
               <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
             </TouchableOpacity>
           </TouchableOpacity>
         )}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.songId}
       />
     </View>
   );
@@ -152,6 +146,7 @@ const styles = StyleSheet.create({
   playlistInfo: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 20 },
   playlistImageContainer: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   playlistImage: { width: 150, height: 150, borderRadius: 12 },
+  playlistImagePlaceholder: { width: 150, height: 150, borderRadius: 12, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' },
   playlistDetails: { flex: 1, marginLeft: 16, justifyContent: 'center' },
   playlistTitle: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 8 },
   playlistMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },

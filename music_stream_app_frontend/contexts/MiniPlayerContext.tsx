@@ -1,4 +1,5 @@
-import { Audio } from 'expo-av';
+import Song from '@/types/Song';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface MiniPlayerContextType {
@@ -9,8 +10,10 @@ interface MiniPlayerContextType {
     artist: string;
     image: any;
     url: string;
+    fullSong?: Song; // Lưu toàn bộ Song object
   } | null;
   setCurrentSong: (song: any) => void;
+  closeMiniPlayer: () => Promise<void>;
   // Audio controls
   isPlaying: boolean;
   position: number;
@@ -28,6 +31,7 @@ const MiniPlayerContext = createContext<MiniPlayerContextType>({
   setIsMinimized: () => {},
   currentSong: null,
   setCurrentSong: () => {},
+  closeMiniPlayer: async () => {},
   isPlaying: false,
   position: 0,
   duration: 0,
@@ -44,103 +48,88 @@ export const useMiniPlayer = () => useContext(MiniPlayerContext);
 export const MiniPlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [currentSong, setCurrentSong] = useState<any>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
-
-  // Setup audio mode
-  useEffect(() => {
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: true,
-    });
-  }, []);
+  const player = useAudioPlayer(currentSong?.url || '');
+  const status = useAudioPlayerStatus(player);
+  
+  const isPlaying = status.playing;
+  const position = status.currentTime * 1000; // Convert to milliseconds
+  const duration = status.duration * 1000; // Convert to milliseconds
 
   // Load sound when song changes
   useEffect(() => {
     if (currentSong?.url) {
-      loadSound();
+      player.replace(currentSong.url);
     }
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
   }, [currentSong?.url]);
 
-  const loadSound = async () => {
-    try {
-      if (sound) {
-        await sound.unloadAsync();
-      }
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: currentSong.url },
-        { shouldPlay: false },
-        onPlaybackStatusUpdate
-      );
-      
-      setSound(newSound);
-    } catch (error) {
-      console.error('Error loading sound:', error);
-    }
-  };
-
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis || 0);
-      setIsPlaying(status.isPlaying);
-      
-      // Auto stop when finished
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-      }
-    }
-  };
-
   const playSound = async () => {
-    if (sound) {
-      await sound.playAsync();
-      setIsPlaying(true);
+    try {
+      player.play();
+    } catch (error) {
+      console.error('Error playing sound:', error);
     }
   };
 
   const pauseSound = async () => {
-    if (sound) {
-      await sound.pauseAsync();
-      setIsPlaying(false);
+    try {
+      player.pause();
+    } catch (error) {
+      console.error('Error pausing sound:', error);
     }
   };
 
   const stopSound = async () => {
-    if (sound) {
-      await sound.stopAsync();
-      setIsPlaying(false);
-      setPosition(0);
+    try {
+      if (player && status.isLoaded) {
+        player.pause();
+        if (status.duration > 0) {
+          await player.seekTo(0);
+        }
+      }
+    } catch (error) {
+      console.error('Error stopping sound:', error);
     }
   };
 
   const seekTo = async (positionMillis: number) => {
-    if (sound) {
-      await sound.setPositionAsync(positionMillis);
+    try {
+      if (player && status.isLoaded && status.duration > 0) {
+        const positionSeconds = positionMillis / 1000;
+        // Clamp position to valid range
+        const clampedPosition = Math.max(0, Math.min(positionSeconds, status.duration));
+        await player.seekTo(clampedPosition);
+      }
+    } catch (error) {
+      console.error('Error seeking:', error);
     }
   };
 
   const skipForward = async (seconds: number = 10) => {
-    if (sound) {
-      const newPosition = Math.min(position + seconds * 1000, duration);
-      await sound.setPositionAsync(newPosition);
+    try {
+      if (player && status.isLoaded && status.duration > 0) {
+        const newPosition = Math.min(status.currentTime + seconds, status.duration);
+        await player.seekTo(newPosition);
+      }
+    } catch (error) {
+      console.error('Error skipping forward:', error);
     }
   };
 
   const skipBackward = async (seconds: number = 10) => {
-    if (sound) {
-      const newPosition = Math.max(position - seconds * 1000, 0);
-      await sound.setPositionAsync(newPosition);
+    try {
+      if (player && status.isLoaded && status.duration > 0) {
+        const newPosition = Math.max(status.currentTime - seconds, 0);
+        await player.seekTo(newPosition);
+      }
+    } catch (error) {
+      console.error('Error skipping backward:', error);
     }
+  };
+
+  const closeMiniPlayer = async () => {
+    await stopSound();
+    setIsMinimized(false);
+    setCurrentSong(null);
   };
 
   return (
@@ -150,6 +139,7 @@ export const MiniPlayerProvider = ({ children }: { children: React.ReactNode }) 
         setIsMinimized, 
         currentSong, 
         setCurrentSong,
+        closeMiniPlayer,
         isPlaying,
         position,
         duration,

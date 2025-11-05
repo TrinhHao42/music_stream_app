@@ -1,11 +1,16 @@
+import { AlbumEmbedded } from './embedded';
 
 type Song = {
-  id: string;
+  songId: string;
   title: string;
-  image: any;
-  artistName: string;
-  views: number;
-  duration: string;
+  release: string;
+  duration: number;
+  listens: number;
+  likes: number;
+  audioUrl: string;
+  coverUrl: string;
+  album: AlbumEmbedded;
+  artist: string[];
   type: 'song';
 };
 
