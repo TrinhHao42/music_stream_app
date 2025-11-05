@@ -16,4 +16,6 @@ public interface AccountService {
     Optional<Account> update(String id, Account account);
 
     void deleteById(String id);
+
+    Account upgradeToPremium(String userId);
 }

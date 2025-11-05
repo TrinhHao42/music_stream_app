@@ -1,14 +1,16 @@
+import { upgradeToPremium } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Animated, Dimensions, FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Dimensions, FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
 const PremiumScreen = () => {
-
+  const { user } = useAuth();
 
   const cards = [
     { id: '1', title: 'Premium', price: '$12.99 / month' },
@@ -17,6 +19,7 @@ const PremiumScreen = () => {
   ];
 
   const [selected, setSelected] = useState('1');
+  const [isUpgrading, setIsUpgrading] = useState(false);
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
 
@@ -35,6 +38,44 @@ const PremiumScreen = () => {
       offset: index * (CARD_WIDTH),
       animated: true,
     });
+  };
+
+  const handleSubscribe = async () => {
+    if (!user?.userId) {
+      Alert.alert('Error', 'Please login to subscribe');
+      router.push('/login' as never);
+      return;
+    }
+
+    Alert.alert(
+      'Confirm Subscription',
+      `Upgrade to ${cards.find(c => c.id === selected)?.title} plan?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Subscribe',
+          onPress: async () => {
+            try {
+              setIsUpgrading(true);
+              const success = await upgradeToPremium(user.userId);
+              
+              if (success) {
+                Alert.alert('Success', 'Upgraded to Premium successfully!');
+                // Navigate back or to downloaded songs
+                router.push('/downloaded-songs' as never);
+              } else {
+                Alert.alert('Error', 'Failed to upgrade. Please try again.');
+              }
+            } catch (error) {
+              console.error('Error upgrading:', error);
+              Alert.alert('Error', 'An error occurred. Please try again.');
+            } finally {
+              setIsUpgrading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -97,8 +138,14 @@ const PremiumScreen = () => {
                     Cancel anytime
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.button}>
-                  <Text style={styles.buttonText}>Subscribe now</Text>
+                <TouchableOpacity 
+                  style={styles.button}
+                  onPress={handleSubscribe}
+                  disabled={isUpgrading}
+                >
+                  <Text style={styles.buttonText}>
+                    {isUpgrading ? 'Processing...' : 'Subscribe now'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>

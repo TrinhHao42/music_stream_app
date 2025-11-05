@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { logout as apiLogout } from '../api/musicApi';
 import { getCurrentUser } from '../api/musicApi';
 import User from '../types/User';
 import axiosInstance from '../utils/axiosInstance';
@@ -114,6 +115,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         try {
+            // Call backend logout API
+            await apiLogout();
+
             // Clear storage
             await storage.removeItem('accessToken');
             await storage.removeItem('refreshToken');
@@ -125,6 +129,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(null);
         } catch (error) {
             console.error('Error during logout:', error);
+            // Still clear local data even if API call fails
+            await storage.removeItem('accessToken');
+            await storage.removeItem('refreshToken');
+            await storage.removeItem('user');
+            setAccessToken(null);
+            setRefreshToken(null);
+            setUser(null);
         }
     };
 

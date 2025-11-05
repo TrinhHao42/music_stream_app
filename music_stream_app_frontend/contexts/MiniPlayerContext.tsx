@@ -83,7 +83,7 @@ export const MiniPlayerProvider = ({ children }: { children: React.ReactNode }) 
       if (player && status.isLoaded) {
         player.pause();
         if (status.duration > 0) {
-          player.currentTime = 0;
+          await player.seekTo(0);
         }
       }
     } catch (error) {
@@ -97,7 +97,7 @@ export const MiniPlayerProvider = ({ children }: { children: React.ReactNode }) 
         const positionSeconds = positionMillis / 1000;
         // Clamp position to valid range
         const clampedPosition = Math.max(0, Math.min(positionSeconds, status.duration));
-        player.currentTime = clampedPosition;
+        await player.seekTo(clampedPosition);
       }
     } catch (error) {
       console.error('Error seeking:', error);
@@ -108,7 +108,7 @@ export const MiniPlayerProvider = ({ children }: { children: React.ReactNode }) 
     try {
       if (player && status.isLoaded && status.duration > 0) {
         const newPosition = Math.min(status.currentTime + seconds, status.duration);
-        player.currentTime = newPosition;
+        await player.seekTo(newPosition);
       }
     } catch (error) {
       console.error('Error skipping forward:', error);
@@ -119,7 +119,7 @@ export const MiniPlayerProvider = ({ children }: { children: React.ReactNode }) 
     try {
       if (player && status.isLoaded && status.duration > 0) {
         const newPosition = Math.max(status.currentTime - seconds, 0);
-        player.currentTime = newPosition;
+        await player.seekTo(newPosition);
       }
     } catch (error) {
       console.error('Error skipping backward:', error);

@@ -9,7 +9,16 @@ public interface PlaylistService {
 
     List<Playlist> getPlayListByUser(String userId);
 
+    Playlist getPlaylistByUserIdAndPlaylistId(String userId, String playlistId);
+
     Playlist UpdatePlaylist(Playlist playlist);
 
     void DropPlaylist(String playlistId);
+
+    // Song management in playlist
+    Playlist addSongToPlaylist(String playlistId, String songId);
+
+    Playlist removeSongFromPlaylist(String playlistId, String songId);
+
+    Playlist getSongsInPlaylist(String playlistId);
 }

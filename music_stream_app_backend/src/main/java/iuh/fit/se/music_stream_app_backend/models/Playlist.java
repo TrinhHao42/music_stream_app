@@ -14,12 +14,14 @@ import java.util.List;
 @Builder
 public class Playlist {
     @Id
-    @Field("_id")
     private String playlistId;
 
+    @Field("playlist_name")
     private String playlistName;
 
+    @Field("user_id")
     private String userId;
 
+    @Field("songs")
     private List<String> songs;
 }
