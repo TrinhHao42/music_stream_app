@@ -296,23 +296,7 @@ const AlbumDetailsScreen = () => {
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            {/* Save to Favourites Button */}
-            <TouchableOpacity 
-              style={isSaved ? styles.savedButton : styles.saveButton}
-              onPress={handleToggleSave}
-              disabled={loadingSave}
-            >
-              {loadingSave ? (
-                <ActivityIndicator size="small" color={isSaved ? "#fff" : "#000"} />
-              ) : (
-                <>
-                  <Ionicons name={isSaved ? "heart" : "heart-outline"} size={18} color={isSaved ? "#fff" : "#000"} />
-                  <Text style={isSaved ? styles.savedText : styles.saveText}>
-                    {isSaved ? 'Liked' : 'Like'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            
 
             {/* Add to Library Button */}
             <TouchableOpacity 
@@ -326,7 +310,7 @@ const AlbumDetailsScreen = () => {
                 <>
                   <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={18} color={inLibrary ? "#fff" : "#000"} />
                   <Text style={inLibrary ? styles.libraryActiveText : styles.libraryText}>
-                    {inLibrary ? 'In Library' : 'Library'}
+                    {inLibrary ? 'In Library' : 'Add to Library'}
                   </Text>
                 </>
               )}
@@ -403,7 +387,7 @@ const AlbumDetailsScreen = () => {
               onPress={handleAddToLibrary}
             >
               <Ionicons name="heart-outline" size={24} color="#000" />
-              <Text style={styles.menuText}>Add to Library</Text>
+              <Text style={styles.menuText}>Remove from Library</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.menuItem}
