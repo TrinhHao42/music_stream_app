@@ -23,7 +23,6 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="launch" options={{ headerShown: false }} />
                 <Stack.Screen name="play-audio" options={{ headerShown: false }} />
-                <Stack.Screen name="song-details" options={{ headerShown: false }} />
                 </Stack>
               <MiniPlayer />
             </SafeAreaView>

@@ -32,6 +32,8 @@ public class SecurityEndpoints {
 
             // Albums endpoints - public
             "/libraries/**",
+            "/accounts/upgrade/**",
+            "/api/download/**",
             "/albums/**"
 
 
@@ -51,7 +53,6 @@ public class SecurityEndpoints {
             "/accounts/upgrade/**",
 
             // Download - chỉ PREMIUM users (kiểm tra trong service)
-            "/api/download/**",
 
             // Current user info and logout
             "/api/auth/me",

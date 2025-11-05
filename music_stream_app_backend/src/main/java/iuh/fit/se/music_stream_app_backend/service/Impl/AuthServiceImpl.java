@@ -60,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
                 .avatarUrl(null)
                 .build();
 
-        accountRepository.save(account);
+        Account savedAccount = accountRepository.save(account);
 
         // Tạo JWT tokens
         String accessToken = jwtUtils.generateAccessToken(request.getEmail());
@@ -71,12 +71,13 @@ public class AuthServiceImpl implements AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .user(savedUser)
+                .isPremium(savedAccount.getType() == Type.PREMIUM)
                 .build();
     }
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        // Xác thực thông tin đăng nhập - BadCredentialsException sẽ tự đ��ng throw nếu sai
+        // Xác thực thông tin đăng nhập - BadCredentialsException sẽ tự động throw nếu sai
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
@@ -100,6 +101,7 @@ public class AuthServiceImpl implements AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .user(user)
+                .isPremium(account.getType() == Type.PREMIUM)
                 .build();
     }
 
@@ -131,6 +133,7 @@ public class AuthServiceImpl implements AuthService {
                 .refreshToken(newRefreshToken)
                 .tokenType("Bearer")
                 .user(user)
+                .isPremium(account.getType() == Type.PREMIUM)
                 .build();
     }
 
