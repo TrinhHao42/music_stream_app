@@ -8,15 +8,15 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const UserScreen = () => {
@@ -242,6 +242,24 @@ const UserScreen = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: () => {
+            // Clear auth data and navigate to launch
+            router.replace('/launch' as any);
+          },
+        },
+      ]
+    );
   };
 
   const Stat = ({ num, label }: { num: number | string; label: string }) => (
@@ -634,6 +652,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F5",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E53935",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  logoutText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   statsRow: {

@@ -1,5 +1,4 @@
-import { addAlbumToLibrary, addSongToLibrary, addSongToPlaylist, getSongByName, getUserPlaylists } from '@/api/musicApi';
-import { addFavouriteAlbum, removeFavouriteAlbum } from '@/api/musicApi';
+import { addFavouriteAlbum, addSongToLibrary, addSongToPlaylist, getSongByName, getUserPlaylists, removeFavouriteAlbum } from '@/api/musicApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -8,14 +7,14 @@ import { useEffect, useState } from 'react';
 
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Modal,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-  Alert,
-  View
+    View
 } from 'react-native';
 
 import { Album, Playlist, Song } from '@/types';
@@ -166,6 +165,68 @@ const AlbumDetailsScreen = () => {
       Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setLoadingSave(false);
+    }
+  };
+
+  const handleShowMenu = async (song: Song) => {
+    setSelectedSong(song);
+    setMenuVisible(true);
+  };
+
+  const handleAddToLibrary = async () => {
+    setMenuVisible(false);
+    if (!user || !selectedSong) {
+      Alert.alert('Error', 'Please login to add songs to library');
+      return;
+    }
+
+    try {
+      const success = await addSongToLibrary(user.userId, selectedSong.songId);
+      if (success) {
+        Alert.alert('Success', 'Song added to library');
+      } else {
+        Alert.alert('Error', 'Failed to add song to library');
+      }
+    } catch (error) {
+      console.error('Error adding song to library:', error);
+      Alert.alert('Error', 'Failed to add song to library');
+    }
+  };
+
+  const handleAddToPlaylistPress = async () => {
+    setMenuVisible(false);
+    if (!user) {
+      Alert.alert('Error', 'Please login to add songs to playlist');
+      return;
+    }
+
+    setLoadingPlaylists(true);
+    setPlaylistModalVisible(true);
+    try {
+      const userPlaylists = await getUserPlaylists(user.userId);
+      setPlaylists(userPlaylists);
+    } catch (error) {
+      console.error('Error fetching playlists:', error);
+      Alert.alert('Error', 'Failed to load playlists');
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
+  const handleSelectPlaylist = async (playlist: Playlist) => {
+    setPlaylistModalVisible(false);
+    if (!selectedSong) return;
+
+    try {
+      const success = await addSongToPlaylist(playlist.playlistId, selectedSong.songId);
+      if (success) {
+        Alert.alert('Success', 'Song added to playlist');
+      } else {
+        Alert.alert('Error', 'Failed to add song to playlist');
+      }
+    } catch (error) {
+      console.error('Error adding song to playlist:', error);
+      Alert.alert('Error', 'Failed to add song to playlist');
     }
   };
 
