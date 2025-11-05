@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getCurrentUser } from '../api/musicApi';
+import { logout as apiLogout, getCurrentUser } from '../api/musicApi';
 import User from '../types/User';
 import axiosInstance from '../utils/axiosInstance';
 import storage from '../utils/storage';
 
 interface AuthContextType {
     user: User | null;
+    isPremium: boolean;
+    setUser: (user: User | null) => void;
     accessToken: string | null;
     refreshToken: string | null;
     isLoading: boolean;
@@ -17,6 +19,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
+    isPremium: false,
+    setUser: () => {},
     accessToken: null,
     refreshToken: null,
     isLoading: true,
@@ -30,6 +34,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [isPremium, setIsPremium ] = useState<boolean>(false);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [refreshToken, setRefreshToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -64,17 +69,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 password,
             });
 
-            const { accessToken, refreshToken, user } = response.data;
+            const { accessToken, refreshToken, user, isPremium } = response.data;
 
             // Save tokens and user to storage
             await storage.setItem('accessToken', accessToken);
             await storage.setItem('refreshToken', refreshToken);
             await storage.setItem('user', JSON.stringify(user));
+            await storage.setItem('isPremium', JSON.stringify(isPremium));
 
             // Update state
             setAccessToken(accessToken);
             setRefreshToken(refreshToken);
             setUser(user);
+            setIsPremium(isPremium);
         } catch (error: any) {
             console.error('Login error:', error);
             console.error('Error response:', error.response?.data);
@@ -114,7 +121,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         try {
-            // Clear storage
+            // Call backend logout API
+            await apiLogout();
+        } catch (error) {
+            console.error('Error calling logout API:', error);
+            // Continue with local cleanup even if API call fails
+        }
+
+        try {
+            // Clear storage - always execute this regardless of API call result
             await storage.removeItem('accessToken');
             await storage.removeItem('refreshToken');
             await storage.removeItem('user');
@@ -124,7 +139,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setRefreshToken(null);
             setUser(null);
         } catch (error) {
-            console.error('Error during logout:', error);
+            console.error('Error clearing storage:', error);
+            // Force clear state even if storage fails
+            setAccessToken(null);
+            setRefreshToken(null);
+            setUser(null);
         }
     };
 
@@ -144,6 +163,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         <AuthContext.Provider
             value={{
                 user,
+                isPremium,
+                setUser,
                 accessToken,
                 refreshToken,
                 isLoading,

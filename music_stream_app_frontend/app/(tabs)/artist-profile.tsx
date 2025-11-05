@@ -1,18 +1,31 @@
-import { getAlbumByName, getSongByName } from '@/api/musicApi';
+import { addArtistToLibrary, addFavouriteArtist, addSongToLibrary, addSongToPlaylist, getAlbumByName, getSongByName, getUserPlaylists, removeArtistFromLibrary, removeFavouriteArtist } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
+import { Playlist, Song } from '@/types';
 import Artist from '@/types/Artist';
 import formatCompactNumber from '@/utils/FormatCompactNumber';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ArtistProfile() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user, setUser } = useAuth();
   const [isFollowing, setIsFollowing] = useState(false);
+  const [inLibrary, setInLibrary] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
   const [loadingAlbumName, setLoadingAlbumName] = useState<string | null>(null);
+  const [loadingFollow, setLoadingFollow] = useState(false);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  
+  // States for menu and playlist modal
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
 
   // Parse artist from params
   if (!params.artist) {
@@ -49,6 +62,156 @@ export default function ArtistProfile() {
     );
   }
 
+  // Handle Follow/Unfollow (thêm vào followList)
+  const handleToggleFollow = async () => {
+    if (!user) {
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Bạn cần đăng nhập để theo dõi nghệ sĩ',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: () => router.push('/launch' as any) },
+        ]
+      );
+      return;
+    }
+
+    setLoadingFollow(true);
+    try {
+      if (isFollowing) {
+        // Unfollow - xóa khỏi followList
+        const updatedUser = await removeFavouriteArtist(user, artist);
+        if (updatedUser) {
+          setUser(updatedUser);
+          setIsFollowing(false);
+          Alert.alert('Thành công', 'Đã bỏ theo dõi nghệ sĩ');
+        } else {
+          Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
+        }
+      } else {
+        // Follow - thêm vào followList
+        const updatedUser = await addFavouriteArtist(user, artist);
+        if (updatedUser) {
+          setUser(updatedUser);
+          setIsFollowing(true);
+          Alert.alert('Thành công', 'Đã theo dõi nghệ sĩ');
+        } else {
+          Alert.alert('Lỗi', 'Không thể theo dõi nghệ sĩ');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra');
+    } finally {
+      setLoadingFollow(false);
+    }
+  };
+
+  // Handle Add/Remove from Library
+  const handleToggleLibrary = async () => {
+    if (!user) {
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Bạn cần đăng nhập để thêm nghệ sĩ vào thư viện',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: () => router.push('/launch' as any) },
+        ]
+      );
+      return;
+    }
+
+    setLoadingLibrary(true);
+    try {
+      if (inLibrary) {
+        // Remove from library
+        const success = await removeArtistFromLibrary(user.userId, artist.artistId);
+        if (success) {
+          setInLibrary(false);
+          Alert.alert('Thành công', 'Đã xóa nghệ sĩ khỏi thư viện');
+        } else {
+          Alert.alert('Lỗi', 'Không thể xóa nghệ sĩ khỏi thư viện');
+        }
+      } else {
+        // Add to library
+        const success = await addArtistToLibrary(user.userId, artist.artistId);
+        if (success) {
+          setInLibrary(true);
+          Alert.alert('Thành công', 'Đã thêm nghệ sĩ vào thư viện');
+        } else {
+          Alert.alert('Lỗi', 'Không thể thêm nghệ sĩ vào thư viện');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling library:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra');
+    } finally {
+      setLoadingLibrary(false);
+    }
+  };
+
+  const handleShowMenu = async (song: Song) => {
+    setSelectedSong(song);
+    setMenuVisible(true);
+  };
+
+  const handleAddToLibrary = async () => {
+    setMenuVisible(false);
+    if (!user || !selectedSong) {
+      Alert.alert('Error', 'Please login to add songs to library');
+      return;
+    }
+
+    try {
+      const success = await addSongToLibrary(user.userId, selectedSong.songId);
+      if (success) {
+        Alert.alert('Success', 'Song added to library');
+      } else {
+        Alert.alert('Error', 'Failed to add song to library');
+      }
+    } catch (error) {
+      console.error('Error adding song to library:', error);
+      Alert.alert('Error', 'Failed to add song to library');
+    }
+  };
+
+  const handleAddToPlaylistPress = async () => {
+    setMenuVisible(false);
+    if (!user) {
+      Alert.alert('Error', 'Please login to add songs to playlist');
+      return;
+    }
+
+    setLoadingPlaylists(true);
+    setPlaylistModalVisible(true);
+    try {
+      const userPlaylists = await getUserPlaylists(user.userId);
+      setPlaylists(userPlaylists);
+    } catch (error) {
+      console.error('Error fetching playlists:', error);
+      Alert.alert('Error', 'Failed to load playlists');
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
+  const handleSelectPlaylist = async (playlist: Playlist) => {
+    setPlaylistModalVisible(false);
+    if (!selectedSong) return;
+
+    try {
+      const success = await addSongToPlaylist(playlist.playlistId, selectedSong.songId);
+      if (success) {
+        Alert.alert('Success', 'Song added to playlist');
+      } else {
+        Alert.alert('Error', 'Failed to add song to playlist');
+      }
+    } catch (error) {
+      console.error('Error adding song to playlist:', error);
+      Alert.alert('Error', 'Failed to add song to playlist');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -75,23 +238,36 @@ export default function ArtistProfile() {
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={isFollowing ? styles.followingButton : styles.followButton}
-              onPress={() => setIsFollowing(!isFollowing)}
+              onPress={handleToggleFollow}
+              disabled={loadingFollow}
             >
-              <Text style={isFollowing ? styles.followingText : styles.followText}>
-                {isFollowing ? 'Following' : 'Follow'}
-              </Text>
+              {loadingFollow ? (
+                <ActivityIndicator size="small" color={isFollowing ? "#fff" : "#000"} />
+              ) : (
+                <>
+                  <Ionicons name={isFollowing ? "heart" : "heart-outline"} size={20} color={isFollowing ? "#fff" : "#000"} />
+                  <Text style={isFollowing ? styles.followingText : styles.followText}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="shuffle" size={24} color="#000" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.playButton}>
-              <Ionicons name="play" size={28} color="#fff" />
+            <TouchableOpacity
+              style={inLibrary ? styles.libraryActiveButton : styles.libraryButton}
+              onPress={handleToggleLibrary}
+              disabled={loadingLibrary}
+            >
+              {loadingLibrary ? (
+                <ActivityIndicator size="small" color={inLibrary ? "#fff" : "#000"} />
+              ) : (
+                <>
+                  <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={20} color={inLibrary ? "#fff" : "#000"} />
+                  <Text style={inLibrary ? styles.libraryActiveText : styles.libraryText}>
+                    {inLibrary ? 'In Library' : 'Library'}
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -112,7 +288,7 @@ export default function ArtistProfile() {
                       const fullSong = await getSongByName(item.title);
                       if (fullSong) {
                         router.push({
-                          pathname: '/play-audio',
+                          pathname: '/song-details',
                           params: { song: JSON.stringify(fullSong) }
                         });
                       } else {
@@ -141,8 +317,17 @@ export default function ArtistProfile() {
                   {loadingSongTitle === item.title ? (
                     <ActivityIndicator size="small" color="#666" />
                   ) : (
-                    <TouchableOpacity>
-                      <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+                    <TouchableOpacity
+                      onPress={async () => {
+                        setLoadingSongTitle(item.title);
+                        const fullSong = await getSongByName(item.title);
+                        setLoadingSongTitle(null);
+                        if (fullSong) {
+                          handleShowMenu(fullSong);
+                        }
+                      }}
+                    >
+                      <Ionicons name="ellipsis-vertical" size={20} color="#666" />
                     </TouchableOpacity>
                   )}
                 </TouchableOpacity>
@@ -210,6 +395,76 @@ export default function ArtistProfile() {
           )}
         </View>
       </ScrollView>
+
+      {/* Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.menuModal}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={handleAddToLibrary}
+            >
+              <Ionicons name="heart-outline" size={24} color="#000" />
+              <Text style={styles.menuText}>Add to Library</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={handleAddToPlaylistPress}
+            >
+              <Ionicons name="list" size={24} color="#000" />
+              <Text style={styles.menuText}>Add to Playlist</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Playlist Selection Modal */}
+      <Modal
+        visible={playlistModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setPlaylistModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.playlistModal}>
+            <View style={styles.playlistHeader}>
+              <Text style={styles.playlistTitle}>Select Playlist</Text>
+              <TouchableOpacity onPress={() => setPlaylistModalVisible(false)}>
+                <Ionicons name="close" size={28} color="#000" />
+              </TouchableOpacity>
+            </View>
+            {loadingPlaylists ? (
+              <ActivityIndicator size="large" color="#000" style={{ marginTop: 20 }} />
+            ) : (
+              <FlatList
+                data={playlists}
+                keyExtractor={(item) => item.playlistId}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.playlistItem}
+                    onPress={() => handleSelectPlaylist(item)}
+                  >
+                    <Text style={styles.playlistItemText}>{item.playlistName}</Text>
+                    <Text style={styles.playlistItemSongs}>{item.songs.length} songs</Text>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No playlists found</Text>
+                }
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -253,17 +508,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   followButton: {
-    paddingHorizontal: 32,
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ccc',
   },
   followingButton: {
-    paddingHorizontal: 32,
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#000',
+    backgroundColor: '#E91E63',
+    borderWidth: 1,
+    borderColor: '#E91E63',
   },
   followText: {
     fontSize: 14,
@@ -271,6 +534,37 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   followingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  libraryButton: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  libraryActiveButton: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#00BCD4',
+    borderWidth: 1,
+    borderColor: '#00BCD4',
+  },
+  libraryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  libraryActiveText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
@@ -411,6 +705,61 @@ const styles = StyleSheet.create({
   relatedArtist: {
     fontSize: 14,
     color: '#666',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuModal: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 8,
+    minWidth: 200,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  menuText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  playlistModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '80%',
+    maxHeight: '70%',
+  },
+  playlistHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  playlistTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  playlistItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  playlistItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  playlistItemSongs: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
 });
 

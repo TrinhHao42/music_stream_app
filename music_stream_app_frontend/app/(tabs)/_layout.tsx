@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/AuthContext';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -5,6 +6,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from "expo-router";
 
 const HomeLayout = () => {
+    const { isPremium } = useAuth();
+
     return (
         <Tabs
             screenOptions={{
@@ -50,6 +53,7 @@ const HomeLayout = () => {
                     ),
                 }}
             />
+            {/* Show Premium tab only if user is NOT premium */}
             <Tabs.Screen
                 name="premium/index"
                 options={{
@@ -57,6 +61,18 @@ const HomeLayout = () => {
                     tabBarIcon: ({ color, size }) => (
                         <Entypo name="popup" size={24} color="gray" />
                     ),
+                    href: isPremium ? null : undefined,
+                }}
+            />
+            {/* Show Downloaded Songs tab only if user IS premium */}
+            <Tabs.Screen
+                name="downloaded-songs"
+                options={{
+                    title: "Downloads",
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="download-outline" size={24} color="gray" />
+                    ),
+                    href: isPremium ? undefined : null,
                 }}
             />
             <Tabs.Screen
@@ -68,17 +84,29 @@ const HomeLayout = () => {
             <Tabs.Screen
                 name="artist-profile"
                 options={{
-                    href: null, // Ẩn khỏi bottom navigation
+                    href: null,
                 }}
             />
             <Tabs.Screen
-                name="playlist-details"
+                name="top-details"
                 options={{
                     href: null,
                 }}
             />
             <Tabs.Screen
                 name="album-details"
+                options={{
+                    href: null,
+                }}
+            />
+            <Tabs.Screen
+                name="song-details"
+                options={{
+                    href: null,
+                }}
+            />
+             <Tabs.Screen
+                name="playlist-details"
                 options={{
                     href: null,
                 }}

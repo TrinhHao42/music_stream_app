@@ -5,6 +5,7 @@ type User = {
   followList: string[]; // artist IDs
   likeList: string[]; // song IDs
   favouriteAlbums: string[]; // album IDs
+  isPremium?: boolean; // Premium status
 };
 
 export default User;

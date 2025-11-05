@@ -12,5 +12,5 @@ public class AuthResponse {
     private String refreshToken;
     private String tokenType = "Bearer";
     private User user;
+    private Boolean isPremium; // Thay đổi thành boolean
 }
-

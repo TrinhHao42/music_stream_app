@@ -31,7 +31,12 @@ public class SecurityEndpoints {
             "/songs/**",
 
             // Albums endpoints - public
+            "/libraries/**",
+            "/accounts/upgrade/**",
+            "/api/download/**",
             "/albums/**"
+
+
     );
 
     // ==================== AUTHENTICATED ENDPOINTS ====================
@@ -40,6 +45,14 @@ public class SecurityEndpoints {
     private final List<String> authenticatedEndpoints = Arrays.asList(
             // Playlists - cần đăng nhập
             "/playlists/**",
+
+            // Libraries - cần đăng nhập
+
+
+            // Account upgrade - cần đăng nhập
+            "/accounts/upgrade/**",
+
+            // Download - chỉ PREMIUM users (kiểm tra trong service)
 
             // Current user info and logout
             "/api/auth/me",

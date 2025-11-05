@@ -26,6 +26,7 @@ const UserScreen = () => {
     user: authUser,
     isLoading: authLoading,
     refreshUserData,
+    logout,
   } = useAuth();
 
   const [user, setUser] = useState<{
@@ -244,6 +245,32 @@ const UserScreen = () => {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Call logout from AuthContext to clear all data
+              await logout();
+              // Navigate to launch screen
+              router.replace('/launch' as any);
+            } catch (error) {
+              console.error('Error during logout:', error);
+              // Still navigate even if logout API fails
+              router.replace('/launch' as any);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const Stat = ({ num, label }: { num: number | string; label: string }) => (
     <View style={styles.statBox}>
       <Text style={styles.statNum}>{num}</Text>
@@ -334,6 +361,16 @@ const UserScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Logout Button */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.logoutBtn}
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
 
       {/* Stats */}
       <View style={styles.statsRow}>
@@ -624,6 +661,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F5",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E53935",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  logoutText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   statsRow: {

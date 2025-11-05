@@ -75,7 +75,7 @@ const SearchScreen = () => {
 
   const handleSongPress = useCallback((song: Song) => {
     router.push({
-      pathname: "/play-audio" as any,
+      pathname: "/song-details" as any,
       params: { song: JSON.stringify(song) },
     });
   }, [router]);

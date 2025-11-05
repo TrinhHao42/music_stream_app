@@ -1,171 +1,288 @@
+import { getPlaylistById, getSongById, removeSongFromPlaylist } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
+import Song from '@/types/Song';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { getSongs } from '@/api/musicApi';
-import { Song } from '@/types';
-
-const formatDuration = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+type Playlist = {
+  playlistId: string;
+  playlistName: string;
+  userId: string;
+  songs: string[];
 };
 
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M`;
-  }
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(1)}K`;
-  }
-  return num.toString();
-};
-
-export default function PlaylistDetails() {
+const PlaylistDetailsLibraryScreen = () => {
   const router = useRouter();
-  const params = useLocalSearchParams<{ title: string; subtitle?: string }>();
+  const params = useLocalSearchParams<{ playlistId: string }>();
+  const { user } = useAuth();
+  const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingSongId, setLoadingSongId] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (params.playlistId) {
+      loadPlaylistAndSongs(params.playlistId);
+    }
+  }, [params.playlistId]);
+
+  const loadPlaylistAndSongs = async (playlistId: string) => {
+    setLoading(true);
     try {
-      const data = await getSongs(0, 50);
-      setSongs(data);
+      // Fetch full playlist data from backend
+      const fullPlaylist = await getPlaylistById(playlistId);
+      
+      if (!fullPlaylist) {
+        Alert.alert('Error', 'Playlist not found');
+        router.back();
+        return;
+      }
+
+      setPlaylist(fullPlaylist);
+      
+      if (fullPlaylist.songs && fullPlaylist.songs.length > 0) {
+        // Fetch all songs
+        const songPromises = fullPlaylist.songs.map((songId: string) => getSongById(songId));
+        const fetchedSongs = await Promise.all(songPromises);
+        setSongs(fetchedSongs.filter((s): s is Song => s !== null));
+      } else {
+        setSongs([]);
+      }
     } catch (error) {
-      console.error(error);
+      console.error('Error loading playlist:', error);
+      Alert.alert('Error', 'Failed to load playlist');
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const handleRemoveSong = async (songId: string) => {
+    if (!playlist || !user) return;
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
+    Alert.alert(
+      'Remove Song',
+      'Remove this song from playlist?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setLoadingSongId(songId);
+            try {
+              const success = await removeSongFromPlaylist(playlist.playlistId, songId);
+              if (success) {
+                setSongs((prevSongs) => prevSongs.filter((s) => s.songId !== songId));
+                Alert.alert('Success', 'Song removed from playlist');
+              } else {
+                Alert.alert('Error', 'Failed to remove song');
+              }
+            } catch (error) {
+              console.error('Error removing song:', error);
+              Alert.alert('Error', 'Failed to remove song');
+            } finally {
+              setLoadingSongId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const totalDuration = songs.reduce((sum, song) => sum + song.duration, 0);
-  const totalDurationStr = formatDuration(totalDuration);
+  const handleSongPress = (song: Song) => {
+    router.push({
+      pathname: '/song-details',
+      params: { song: JSON.stringify(song) },
+    } as never);
+  };
+
+  if (!playlist) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#1ce5ff" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.topBar}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={28} color="#000" />
         </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="search-outline" size={24} color="#000" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Playlist</Text>
+        <View style={{ width: 28 }} />
       </View>
 
       {/* Playlist Info */}
       <View style={styles.playlistInfo}>
-        <View style={styles.playlistImageContainer}>
-          <View style={styles.playlistImagePlaceholder}>
-            <Ionicons name="musical-notes" size={60} color="#9333EA" />
-          </View>
+        <View style={styles.playlistIcon}>
+          <Ionicons name="musical-notes" size={40} color="#fff" />
         </View>
-        <View style={styles.playlistDetails}>
-          <Text style={styles.playlistTitle}>{params.title || 'Top 50'}</Text>
-          <View style={styles.playlistMeta}>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaText}>{songs.length} songs</Text>
-            </View>
-            <Text style={styles.dot}>•</Text>
-            <Text style={styles.metaText}>{totalDurationStr}</Text>
-          </View>
-          <Text style={styles.description}>{params.subtitle || 'Daily chart-toppers update'}</Text>
-        </View>
-      </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="heart-outline" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="shuffle" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.playButton}>
-          <Ionicons name="play" size={28} color="#fff" />
-        </TouchableOpacity>
+        <Text style={styles.playlistName}>{playlist.playlistName}</Text>
+        <Text style={styles.songCount}>{songs.length} songs</Text>
       </View>
 
       {/* Songs List */}
-      <FlatList
-        data={songs}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#9333EA"
-            colors={['#9333EA']}
-          />
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.songItem}
-            onPress={() => router.push({ pathname: '/play-audio', params: { song: JSON.stringify(item) } })}
-          >
-            <Image source={item.coverUrl ? { uri: item.coverUrl } : require('../../assets/images/Home - Audio Listing/Image 36.png')} style={styles.songImage} contentFit="cover" transition={0} cachePolicy="memory-disk" />
-            <View style={styles.songInfo}>
-              <Text style={styles.songTitle}>{item.title}</Text>
-              <Text style={styles.songArtist}>{item.artist.join(', ')}</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1ce5ff" />
+        </View>
+      ) : (
+        <FlatList
+          data={songs}
+          keyExtractor={(item) => item.songId}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <View style={styles.songItem}>
+              <TouchableOpacity
+                style={styles.songContent}
+                onPress={() => handleSongPress(item)}
+              >
+                <Image
+                  source={{ uri: item.coverUrl }}
+                  style={styles.songImage}
+                  contentFit="cover"
+                />
+                <View style={styles.songInfo}>
+                  <Text style={styles.songTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.songArtist} numberOfLines={1}>
+                    {Array.isArray(item.artist) ? item.artist.join(', ') : item.artist}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleRemoveSong(item.songId)}
+                style={styles.removeBtn}
+                disabled={loadingSongId === item.songId}
+              >
+                {loadingSongId === item.songId ? (
+                  <ActivityIndicator size="small" color="#E53935" />
+                ) : (
+                  <Ionicons name="trash-outline" size={20} color="#E53935" />
+                )}
+              </TouchableOpacity>
             </View>
-            <View style={styles.songMeta}>
-              <View style={styles.playInfo}>
-                <Ionicons name="play" size={12} color="#666" />
-                <Text style={styles.playText}>{formatNumber(item.listens)}</Text>
-              </View>
-              <Text style={styles.dot}>•</Text>
-              <Text style={styles.songDuration}>{formatDuration(item.duration)}</Text>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="musical-notes-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>No songs in this playlist</Text>
             </View>
-            <TouchableOpacity>
-              <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.songId}
-      />
+          }
+        />
+      )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 16 },
-  playlistInfo: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 20 },
-  playlistImageContainer: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-  playlistImage: { width: 150, height: 150, borderRadius: 12 },
-  playlistImagePlaceholder: { width: 150, height: 150, borderRadius: 12, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' },
-  playlistDetails: { flex: 1, marginLeft: 16, justifyContent: 'center' },
-  playlistTitle: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 8 },
-  playlistMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 14, color: '#666' },
-  dot: { fontSize: 14, color: '#999', marginHorizontal: 8 },
-  description: { fontSize: 12, color: '#999' },
-  actionButtons: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16, gap: 12 },
-  actionButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  playButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginLeft: 'auto' },
-  listContent: { paddingBottom: 100 },
-  songItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
-  songImage: { width: 56, height: 56, borderRadius: 8 },
-  songInfo: { flex: 1 },
-  songTitle: { fontSize: 16, fontWeight: '600', color: '#000', marginBottom: 4 },
-  songArtist: { fontSize: 14, color: '#666' },
-  songMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  playInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  playText: { fontSize: 12, color: '#666' },
-  songDuration: { fontSize: 12, color: '#666' },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+  },
+  playlistInfo: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  playlistIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: '#1ce5ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  playlistName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 8,
+  },
+  songCount: {
+    fontSize: 14,
+    color: '#666',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContent: {
+    padding: 16,
+  },
+  songItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  songContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  songImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  songInfo: {
+    flex: 1,
+  },
+  songTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  songArtist: {
+    fontSize: 14,
+    color: '#666',
+  },
+  removeBtn: {
+    padding: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 16,
+  },
 });
 
+export default PlaylistDetailsLibraryScreen;

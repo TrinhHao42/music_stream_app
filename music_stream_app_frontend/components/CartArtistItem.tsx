@@ -1,35 +1,80 @@
+import { addArtistToLibrary } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
+import { Artist } from '@/types';
 import formatCompactNumber from '@/utils/FormatCompactNumber';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from "expo-image";
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-type Props = { name: string; image: any; followers?: number; onFollow?: () => void };
+type Props = { 
+    artist: Artist;
+    showFollow?: boolean;
+};
 
-const LibraryArtistItem = ({ name, image, followers, onFollow }: Props) => {
+const LibraryArtistItem = ({ artist, showFollow = false }: Props) => {
     const router = useRouter();
+    const { user } = useAuth();
+
+    const handlePress = () => {
+        router.push({
+            pathname: '/(tabs)/artist-profile',
+            params: {
+                artist: JSON.stringify(artist)
+            }
+        });
+    };
+
+    const handleFollow = async () => {
+        if (!user) {
+            Alert.alert('Error', 'Please login to follow artists');
+            return;
+        }
+
+        try {
+            const success = await addArtistToLibrary(user.userId, artist.artistId);
+            if (success) {
+                Alert.alert('Success', 'Artist added to library');
+            } else {
+                Alert.alert('Error', 'Failed to follow artist');
+            }
+        } catch (error) {
+            console.error('Error following artist:', error);
+            Alert.alert('Error', 'Failed to follow artist');
+        }
+    };
+
     return (
         <TouchableOpacity
             style={styles.card}
             activeOpacity={0.8}
-            onPress={() => router.push('/artist-profile' as never)}
+            onPress={handlePress}
         >
-            <Image source={image} style={styles.img} contentFit="cover" transition={0} cachePolicy="memory-disk" />
+            <Image 
+                source={artist.artistImage ? { uri: artist.artistImage } : require('../assets/images/Play an Audio/Image 58.png')} 
+                style={styles.img} 
+                contentFit="cover" 
+                transition={0} 
+                cachePolicy="memory-disk" 
+            />
             <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={styles.title}>{name}</Text>
-                {followers ?
+                <Text numberOfLines={1} style={styles.title}>{artist.artistName}</Text>
+                {artist.followers !== undefined && (
                     <Text style={{ color: '#777' }}>
                         <Feather name="user" size={15} color="gray" style={{ marginRight: 5 }} />
-                        {formatCompactNumber(followers)} Followers
-                    </Text> : null}
+                        {formatCompactNumber(artist.followers)} Followers
+                    </Text>
+                )}
             </View>
-            <TouchableOpacity
-                style={{ backgroundColor: 'black', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
-                activeOpacity={0.8}
-                onPress={onFollow}
-            >
-                <Text style={{ color: 'white', fontWeight: '600' }}>Follow</Text>
-            </TouchableOpacity>
+            {showFollow && (
+                <TouchableOpacity
+                    style={{ backgroundColor: 'black', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
+                    activeOpacity={0.8}
+                    onPress={handleFollow}
+                >
+                    <Text style={{ color: 'white', fontWeight: '600' }}>Follow</Text>
+                </TouchableOpacity>
+            )}
         </TouchableOpacity>
     )
 }
