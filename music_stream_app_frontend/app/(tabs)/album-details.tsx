@@ -1,29 +1,31 @@
 import { addAlbumToLibrary, addSongToLibrary, addSongToPlaylist, getSongByName, getUserPlaylists } from '@/api/musicApi';
+import { addFavouriteAlbum, removeFavouriteAlbum } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Modal,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+  Alert,
+  View
 } from 'react-native';
 
-import { useAuth } from '@/contexts/AuthContext';
 import { Album, Playlist, Song } from '@/types';
 
 const AlbumDetailsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ album: string }>();
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
+  const [loadingSave, setLoadingSave] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
   const [savingAlbum, setSavingAlbum] = useState(false);
   
@@ -34,7 +36,28 @@ const AlbumDetailsScreen = () => {
   const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
 
-  // Parse album from params
+  // Parse album from params - xử lý trước hooks
+  let album: Album | null = null;
+  let parseError = false;
+
+  if (params.album) {
+    try {
+      album = JSON.parse(params.album as string);
+    } catch (error) {
+      console.error('Error parsing album:', error);
+      parseError = true;
+    }
+  }
+
+  // Kiểm tra album có trong danh sách yêu thích không
+  useEffect(() => {
+    if (album && user && user.favouriteAlbums) {
+      setIsSaved(user.favouriteAlbums.includes(album.albumId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, album?.albumId]);
+
+  // Early returns sau hooks
   if (!params.album) {
     return (
       <View style={styles.container}>
@@ -50,11 +73,7 @@ const AlbumDetailsScreen = () => {
     );
   }
 
-  let album: Album;
-  try {
-    album = JSON.parse(params.album as string);
-  } catch (error) {
-    console.error('Error parsing album:', error);
+  if (parseError || !album) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -88,93 +107,65 @@ const AlbumDetailsScreen = () => {
     }
   };
 
-  const handleSaveAlbum = async () => {
+  const handleToggleSave = async () => {
     if (!user) {
-      Alert.alert('Error', 'Please login to save albums');
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Bạn cần đăng nhập để lưu album vào danh sách yêu thích',
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel',
+          },
+          {
+            text: 'Đăng nhập',
+            onPress: () => router.push('/launch' as any),
+          },
+        ]
+      );
       return;
     }
 
-    if (isSaved) {
-      // Already saved, could implement unsave here
-      return;
-    }
+    // Optimistic update - Cập nhật UI ngay lập tức
+    const previousState = isSaved;
+    setIsSaved(!isSaved);
+    setLoadingSave(true);
 
-    setSavingAlbum(true);
     try {
-      const success = await addAlbumToLibrary(user.userId, album.albumId);
-      if (success) {
-        setIsSaved(true);
-        Alert.alert('Success', 'Album added to library');
+      let success = false;
+      
+      if (previousState) {
+        // Xóa khỏi yêu thích
+        const updatedUser = await removeFavouriteAlbum(user, album);
+        success = updatedUser !== null;
+        
+        if (success) {
+          // Refresh user data ở background
+          refreshUserData().catch(console.error);
+        }
       } else {
-        Alert.alert('Error', 'Failed to add album to library');
+        // Thêm vào yêu thích
+        const updatedUser = await addFavouriteAlbum(user, album);
+        success = updatedUser !== null;
+        
+        if (success) {
+          // Refresh user data ở background
+          refreshUserData().catch(console.error);
+        }
+      }
+
+      if (!success) {
+        // Rollback UI nếu thất bại
+        setIsSaved(previousState);
+        Alert.alert('Lỗi', 'Không thể cập nhật. Vui lòng thử lại');
       }
     } catch (error) {
-      console.error('Error saving album:', error);
-      Alert.alert('Error', 'Failed to add album to library');
+      console.error('Error toggling save:', error);
+      // Rollback UI nếu có exception
+      setIsSaved(previousState);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
-      setSavingAlbum(false);
-    }
-  };
-
-  const handleShowMenu = async (song: Song) => {
-    setSelectedSong(song);
-    setMenuVisible(true);
-  };
-
-  const handleAddToLibrary = async () => {
-    setMenuVisible(false);
-    if (!user || !selectedSong) {
-      Alert.alert('Error', 'Please login to add songs to library');
-      return;
-    }
-
-    try {
-      const success = await addSongToLibrary(user.userId, selectedSong.songId);
-      if (success) {
-        Alert.alert('Success', 'Song added to library');
-      } else {
-        Alert.alert('Error', 'Failed to add song to library');
-      }
-    } catch (error) {
-      console.error('Error adding song to library:', error);
-      Alert.alert('Error', 'Failed to add song to library');
-    }
-  };
-
-  const handleAddToPlaylistPress = async () => {
-    setMenuVisible(false);
-    if (!user) {
-      Alert.alert('Error', 'Please login to add songs to playlist');
-      return;
-    }
-
-    setLoadingPlaylists(true);
-    setPlaylistModalVisible(true);
-    try {
-      const userPlaylists = await getUserPlaylists(user.userId);
-      setPlaylists(userPlaylists);
-    } catch (error) {
-      console.error('Error fetching playlists:', error);
-      Alert.alert('Error', 'Failed to load playlists');
-    } finally {
-      setLoadingPlaylists(false);
-    }
-  };
-
-  const handleSelectPlaylist = async (playlist: Playlist) => {
-    setPlaylistModalVisible(false);
-    if (!selectedSong) return;
-
-    try {
-      const success = await addSongToPlaylist(playlist.playlistId, selectedSong.songId);
-      if (success) {
-        Alert.alert('Success', 'Song added to playlist');
-      } else {
-        Alert.alert('Error', 'Failed to add song to playlist');
-      }
-    } catch (error) {
-      console.error('Error adding song to playlist:', error);
-      Alert.alert('Error', 'Failed to add song to playlist');
+      setLoadingSave(false);
     }
   };
 
@@ -209,11 +200,11 @@ const AlbumDetailsScreen = () => {
           <View style={styles.actionButtons}>
             <TouchableOpacity 
               style={isSaved ? styles.savedButton : styles.saveButton}
-              onPress={handleSaveAlbum}
-              disabled={savingAlbum}
+              onPress={handleToggleSave}
+              disabled={loadingSave}
             >
-              {savingAlbum ? (
-                <ActivityIndicator size="small" color={isSaved ? "#4CAF50" : "#000"} />
+              {loadingSave ? (
+                <ActivityIndicator size="small" color={isSaved ? "#fff" : "#000"} />
               ) : (
                 <Text style={isSaved ? styles.savedText : styles.saveText}>
                   {isSaved ? 'Saved' : 'Save'}
