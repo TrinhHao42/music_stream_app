@@ -38,6 +38,7 @@ const UserScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [nameInput, setNameInput] = useState("");
 
@@ -146,14 +147,29 @@ const UserScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
+              setLoggingOut(true);
+              
               // Call logout from AuthContext to clear all data
               await logout();
+              
               // Navigate to launch screen
               router.replace('/launch' as any);
             } catch (error) {
               console.error('Error during logout:', error);
-              // Still navigate even if logout API fails
-              router.replace('/launch' as any);
+              
+              // Show error but still navigate to clear local state
+              Alert.alert(
+                'Thông báo',
+                'Đã có lỗi xảy ra nhưng bạn đã được đăng xuất khỏi thiết bị này.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => router.replace('/launch' as any)
+                  }
+                ]
+              );
+            } finally {
+              setLoggingOut(false);
             }
           },
         },
@@ -273,11 +289,21 @@ const UserScreen = () => {
       {/* Logout Button */}
       <TouchableOpacity
         activeOpacity={0.7}
-        style={styles.logoutBtn}
+        style={[styles.logoutBtn, loggingOut && { opacity: 0.6 }]}
         onPress={handleLogout}
+        disabled={loggingOut}
       >
-        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-        <Text style={styles.logoutText}>Đăng xuất</Text>
+        {loggingOut ? (
+          <>
+            <ActivityIndicator size="small" color="#FFFFFF" />
+            <Text style={styles.logoutText}>Đang đăng xuất...</Text>
+          </>
+        ) : (
+          <>
+            <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.logoutText}>Đăng xuất</Text>
+          </>
+        )}
       </TouchableOpacity>
 
       {/* Editor (toggle khi bấm icon edit) */}

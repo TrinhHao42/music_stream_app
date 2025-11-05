@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { logout as apiLogout, getCurrentUser } from '../api/musicApi';
 import User from '../types/User';
-import axiosInstance from '../utils/axiosInstance';
+import axiosInstance, { setAuthErrorCallback } from '../utils/axiosInstance';
 import storage from '../utils/storage';
+import { Alert } from 'react-native';
 
 interface AuthContextType {
     user: User | null;
@@ -42,6 +43,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Load stored auth data on mount
     useEffect(() => {
         loadStoredAuth();
+        
+        // Setup auth error callback để handle JWT expiration
+        setAuthErrorCallback(async (authError) => {
+            console.log('🔒 Auth error detected:', authError.type);
+            
+            if (authError.type === 'JWT_EXPIRED') {
+                // Clear local state
+                setAccessToken(null);
+                setRefreshToken(null);
+                setUser(null);
+                
+                // Show alert to user
+                Alert.alert(
+                    'Phiên đăng nhập đã hết hạn',
+                    'Vui lòng đăng nhập lại để tiếp tục sử dụng ứng dụng.',
+                    [{ text: 'OK' }]
+                );
+            } else if (authError.type === 'NO_REFRESH_TOKEN' || authError.type === 'REFRESH_FAILED') {
+                // Clear local state
+                setAccessToken(null);
+                setRefreshToken(null);
+                setUser(null);
+            }
+        });
     }, []);
 
     const loadStoredAuth = async () => {

@@ -24,7 +24,14 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+// Global event emitter for auth errors
+let authErrorCallback: ((error: any) => void) | null = null;
+
+export const setAuthErrorCallback = (callback: (error: any) => void) => {
+  authErrorCallback = callback;
+};
+
+// Response interceptor to handle token refresh and expiration
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
@@ -32,43 +39,80 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    // Check if error is JWT expired (401 Unauthorized)
+    if (error.response?.status === 401) {
+      const errorMessage = error.response?.data?.message || error.message || '';
+      const isJWTExpired = errorMessage.includes('JWT expired') || 
+                          errorMessage.includes('expired') ||
+                          errorMessage.includes('Token expired');
 
-      try {
-        const refreshToken = await storage.getItem('refreshToken');
+      // If JWT expired, clear all auth data and notify app
+      if (isJWTExpired) {
+        console.log('🔒 JWT Token đã hết hạn, đang logout...');
         
-        if (!refreshToken) {
-          // No refresh token, redirect to login
-          await storage.removeItem('accessToken');
-          await storage.removeItem('refreshToken');
-          await storage.removeItem('user');
-          return Promise.reject(error);
-        }
-
-        // Call refresh token API
-        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
-          refreshToken,
-        });
-
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
-
-        // Save new tokens
-        await storage.setItem('accessToken', newAccessToken);
-        if (newRefreshToken) {
-          await storage.setItem('refreshToken', newRefreshToken);
-        }
-
-        // Retry original request with new token
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return axiosInstance(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed, clear tokens and redirect to login
+        // Clear all storage
         await storage.removeItem('accessToken');
         await storage.removeItem('refreshToken');
         await storage.removeItem('user');
-        return Promise.reject(refreshError);
+
+        // Notify the app (AuthContext) to logout
+        if (authErrorCallback) {
+          authErrorCallback({ type: 'JWT_EXPIRED', error });
+        }
+
+        return Promise.reject(new Error('JWT_EXPIRED'));
+      }
+
+      // Try refresh token if not expired and haven't retried yet
+      if (!originalRequest._retry) {
+        originalRequest._retry = true;
+
+        try {
+          const refreshToken = await storage.getItem('refreshToken');
+          
+          if (!refreshToken) {
+            // No refresh token, clear and logout
+            await storage.removeItem('accessToken');
+            await storage.removeItem('refreshToken');
+            await storage.removeItem('user');
+            
+            if (authErrorCallback) {
+              authErrorCallback({ type: 'NO_REFRESH_TOKEN', error });
+            }
+            
+            return Promise.reject(error);
+          }
+
+          // Call refresh token API
+          const response = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
+            refreshToken,
+          });
+
+          const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+
+          // Save new tokens
+          await storage.setItem('accessToken', newAccessToken);
+          if (newRefreshToken) {
+            await storage.setItem('refreshToken', newRefreshToken);
+          }
+
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return axiosInstance(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and logout
+          console.log('🔒 Refresh token thất bại, đang logout...');
+          
+          await storage.removeItem('accessToken');
+          await storage.removeItem('refreshToken');
+          await storage.removeItem('user');
+          
+          if (authErrorCallback) {
+            authErrorCallback({ type: 'REFRESH_FAILED', error: refreshError });
+          }
+          
+          return Promise.reject(refreshError);
+        }
       }
     }
 
