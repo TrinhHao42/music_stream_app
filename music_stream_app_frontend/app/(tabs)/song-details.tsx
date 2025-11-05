@@ -164,7 +164,7 @@ export default function SongDetails() {
         {/* Song Cover */}
         <View style={styles.coverContainer}>
           <Image
-            source={song.coverUrl ? { uri: song.coverUrl } : require('../assets/images/Home - Audio Listing/Image 36.png')}
+            source={song.coverUrl ? { uri: song.coverUrl } : require('@/assets/images/Home - Audio Listing/Image 36.png')}
             style={styles.coverImage}
             contentFit="cover"
             transition={0}
@@ -224,16 +224,6 @@ export default function SongDetails() {
                 </>
               )}
             </TouchableOpacity>
-          </View>
-
-          {/* Additional Info */}
-          <View style={styles.detailsSection}>
-            <Text style={styles.sectionTitle}>Details</Text>
-            
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Song ID</Text>
-              <Text style={styles.detailValue}>{song.songId}</Text>
-            </View>
           </View>
         </View>
 

@@ -14,18 +14,30 @@ type Props = {
   playlist: Playlist;
   showRemove?: boolean;
   onRemove?: () => void;
+  fromLibrary?: boolean; // New prop to indicate if called from library
 };
 
-const CartPlaylistItem = ({ playlist, showRemove = false, onRemove }: Props) => {
+const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary = false }: Props) => {
   const router = useRouter();
 
   const handlePress = () => {
-    router.push({
-      pathname: '/playlist-details',
-      params: {
-        playlistId: playlist.playlistId,
-      },
-    });
+    if (fromLibrary) {
+      // Navigate to library playlist details page
+      router.push({
+        pathname: '/playlist-details-library',
+        params: {
+          playlist: JSON.stringify(playlist),
+        },
+      } as never);
+    } else {
+      // Navigate to regular playlist details page
+      router.push({
+        pathname: '/playlist-details',
+        params: {
+          playlistId: playlist.playlistId,
+        },
+      });
+    }
   };
 
   const handleRemove = () => {

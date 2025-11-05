@@ -28,22 +28,16 @@ public class PlaylistServiceImpl implements iuh.fit.se.music_stream_app_backend.
     @Override
     @Transactional
     public Playlist AddPlaylist(Playlist playlist) {
-        log.info("Creating playlist for user: {}", playlist.getUserId());
 
         // Save playlist first
         Playlist savedPlaylist = playlistRepository.save(playlist);
-        log.info("Playlist saved with ID: {}", savedPlaylist.getPlaylistId());
 
         // Automatically add to user's library after playlist is saved
         if (savedPlaylist.getUserId() != null && savedPlaylist.getPlaylistId() != null) {
-            log.info("Adding playlist {} to library for user {}",
-                savedPlaylist.getPlaylistId(), savedPlaylist.getUserId());
             try {
                 libraryService.addPlaylistToLibrary(savedPlaylist.getUserId(), savedPlaylist.getPlaylistId());
-                log.info("Successfully added playlist to library");
             } catch (Exception e) {
                 log.error("Failed to add playlist to library: {}", e.getMessage(), e);
-                // Don't fail the whole operation if library update fails
             }
         }
 

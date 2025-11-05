@@ -213,6 +213,7 @@ const LibraryScreen = () => {
                 playlist={item}
                 showRemove={true}
                 onRemove={() => handleRemovePlaylist(item.playlistId)}
+                fromLibrary={true}
               />
             )}
             keyExtractor={(item) => item.playlistId}
@@ -360,6 +361,7 @@ const LibraryScreen = () => {
                           <CartPlaylistItem
                             playlist={playlist}
                             showRemove={false}
+                            fromLibrary={true}
                           />
                         </View>
                         <TouchableOpacity

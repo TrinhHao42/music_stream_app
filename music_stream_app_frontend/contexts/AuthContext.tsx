@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { logout as apiLogout } from '../api/musicApi';
-import { getCurrentUser } from '../api/musicApi';
+import { logout as apiLogout, getCurrentUser } from '../api/musicApi';
 import User from '../types/User';
 import axiosInstance from '../utils/axiosInstance';
 import storage from '../utils/storage';
 
 interface AuthContextType {
     user: User | null;
+    setUser: (user: User | null) => void;
     accessToken: string | null;
     refreshToken: string | null;
     isLoading: boolean;
@@ -18,6 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
+    setUser: () => {},
     accessToken: null,
     refreshToken: null,
     isLoading: true,
@@ -155,6 +156,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         <AuthContext.Provider
             value={{
                 user,
+                setUser,
                 accessToken,
                 refreshToken,
                 isLoading,

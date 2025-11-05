@@ -18,7 +18,6 @@ public class ScheduledTasksConfig {
     // Chạy mỗi 30 phút để cleanup expired tokens
     @Scheduled(fixedRate = 1800000) // 30 minutes in milliseconds
     public void cleanupExpiredDownloadTokens() {
-        log.info("Running scheduled task: cleanup expired download tokens");
         downloadService.cleanupExpiredTokens();
     }
 }
