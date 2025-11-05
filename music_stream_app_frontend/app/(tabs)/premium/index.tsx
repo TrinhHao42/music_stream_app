@@ -10,7 +10,7 @@ import { RadioButton } from 'react-native-paper';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
 const PremiumScreen = () => {
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
 
   const cards = [
     { id: '1', title: 'Premium', price: '$12.99 / month' },
@@ -60,6 +60,9 @@ const PremiumScreen = () => {
               const success = await upgradeToPremium(user.userId);
               
               if (success) {
+                // Refresh user data to update isPremium status
+                await refreshUserData();
+                
                 Alert.alert('Success', 'Upgraded to Premium successfully!');
                 // Navigate back or to downloaded songs
                 router.push('/downloaded-songs' as never);
