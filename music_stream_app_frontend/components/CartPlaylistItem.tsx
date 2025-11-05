@@ -24,7 +24,7 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
     if (fromLibrary) {
       // Navigate to library playlist details page
       router.push({
-        pathname: '/playlist-details-library',
+        pathname: '/playlist-details',
         params: {
           playlist: JSON.stringify(playlist),
         },

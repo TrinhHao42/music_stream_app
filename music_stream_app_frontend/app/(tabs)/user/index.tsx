@@ -8,15 +8,15 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const UserScreen = () => {
@@ -26,6 +26,7 @@ const UserScreen = () => {
     user: authUser,
     isLoading: authLoading,
     refreshUserData,
+    logout,
   } = useAuth();
 
   const [user, setUser] = useState<{
@@ -253,9 +254,17 @@ const UserScreen = () => {
         {
           text: 'Đăng xuất',
           style: 'destructive',
-          onPress: () => {
-            // Clear auth data and navigate to launch
-            router.replace('/launch' as any);
+          onPress: async () => {
+            try {
+              // Call logout from AuthContext to clear all data
+              await logout();
+              // Navigate to launch screen
+              router.replace('/launch' as any);
+            } catch (error) {
+              console.error('Error during logout:', error);
+              // Still navigate even if logout API fails
+              router.replace('/launch' as any);
+            }
           },
         },
       ]
