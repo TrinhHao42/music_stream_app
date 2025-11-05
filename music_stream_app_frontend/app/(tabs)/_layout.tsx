@@ -68,17 +68,29 @@ const HomeLayout = () => {
             <Tabs.Screen
                 name="artist-profile"
                 options={{
-                    href: null, // Ẩn khỏi bottom navigation
+                    href: null,
                 }}
             />
             <Tabs.Screen
-                name="playlist-details"
+                name="top-details"
                 options={{
                     href: null,
                 }}
             />
             <Tabs.Screen
                 name="album-details"
+                options={{
+                    href: null,
+                }}
+            />
+            <Tabs.Screen
+                name="song-details"
+                options={{
+                    href: null,
+                }}
+            />
+             <Tabs.Screen
+                name="playlist-details"
                 options={{
                     href: null,
                 }}

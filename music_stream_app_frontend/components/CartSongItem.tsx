@@ -47,7 +47,7 @@ const LibrarySongItem = ({ song, showAddToLibrary = false, showAddToPlaylist = f
     const handlePress = () => {
         // Truyền song object dưới dạng JSON string
         router.push({
-            pathname: '/play-audio',
+            pathname: '/song-details',
             params: {
                 song: JSON.stringify(song)
             }

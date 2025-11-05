@@ -1,4 +1,4 @@
-import { addArtistToLibrary, addSongToLibrary, addSongToPlaylist, getAlbumByName, getSongByName, getUserPlaylists } from '@/api/musicApi';
+import { addArtistToLibrary, addFavouriteArtist, addSongToLibrary, addSongToPlaylist, getAlbumByName, getSongByName, getUserPlaylists, removeArtistFromLibrary, removeFavouriteArtist } from '@/api/musicApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Playlist, Song } from '@/types';
 import Artist from '@/types/Artist';
@@ -12,11 +12,13 @@ import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, Text
 export default function ArtistProfile() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [isFollowing, setIsFollowing] = useState(false);
+  const [inLibrary, setInLibrary] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
   const [loadingAlbumName, setLoadingAlbumName] = useState<string | null>(null);
-  const [followingArtist, setFollowingArtist] = useState(false);
+  const [loadingFollow, setLoadingFollow] = useState(false);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
   
   // States for menu and playlist modal
   const [menuVisible, setMenuVisible] = useState(false);
@@ -60,32 +62,91 @@ export default function ArtistProfile() {
     );
   }
 
-  const handleFollow = async () => {
+  // Handle Follow/Unfollow (thêm vào followList)
+  const handleToggleFollow = async () => {
     if (!user) {
-      Alert.alert('Error', 'Please login to follow artists');
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Bạn cần đăng nhập để theo dõi nghệ sĩ',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: () => router.push('/launch' as any) },
+        ]
+      );
       return;
     }
 
-    if (isFollowing) {
-      // Already following, could implement unfollow
-      setIsFollowing(false);
-      return;
-    }
-
-    setFollowingArtist(true);
+    setLoadingFollow(true);
     try {
-      const success = await addArtistToLibrary(user.userId, artist.artistId);
-      if (success) {
-        setIsFollowing(true);
-        Alert.alert('Success', 'Artist added to library');
+      if (isFollowing) {
+        // Unfollow - xóa khỏi followList
+        const updatedUser = await removeFavouriteArtist(user, artist);
+        if (updatedUser) {
+          setUser(updatedUser);
+          setIsFollowing(false);
+          Alert.alert('Thành công', 'Đã bỏ theo dõi nghệ sĩ');
+        } else {
+          Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
+        }
       } else {
-        Alert.alert('Error', 'Failed to follow artist');
+        // Follow - thêm vào followList
+        const updatedUser = await addFavouriteArtist(user, artist);
+        if (updatedUser) {
+          setUser(updatedUser);
+          setIsFollowing(true);
+          Alert.alert('Thành công', 'Đã theo dõi nghệ sĩ');
+        } else {
+          Alert.alert('Lỗi', 'Không thể theo dõi nghệ sĩ');
+        }
       }
     } catch (error) {
-      console.error('Error following artist:', error);
-      Alert.alert('Error', 'Failed to follow artist');
+      console.error('Error toggling follow:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra');
     } finally {
-      setFollowingArtist(false);
+      setLoadingFollow(false);
+    }
+  };
+
+  // Handle Add/Remove from Library
+  const handleToggleLibrary = async () => {
+    if (!user) {
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        'Bạn cần đăng nhập để thêm nghệ sĩ vào thư viện',
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: () => router.push('/launch' as any) },
+        ]
+      );
+      return;
+    }
+
+    setLoadingLibrary(true);
+    try {
+      if (inLibrary) {
+        // Remove from library
+        const success = await removeArtistFromLibrary(user.userId, artist.artistId);
+        if (success) {
+          setInLibrary(false);
+          Alert.alert('Thành công', 'Đã xóa nghệ sĩ khỏi thư viện');
+        } else {
+          Alert.alert('Lỗi', 'Không thể xóa nghệ sĩ khỏi thư viện');
+        }
+      } else {
+        // Add to library
+        const success = await addArtistToLibrary(user.userId, artist.artistId);
+        if (success) {
+          setInLibrary(true);
+          Alert.alert('Thành công', 'Đã thêm nghệ sĩ vào thư viện');
+        } else {
+          Alert.alert('Lỗi', 'Không thể thêm nghệ sĩ vào thư viện');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling library:', error);
+      Alert.alert('Lỗi', 'Có lỗi xảy ra');
+    } finally {
+      setLoadingLibrary(false);
     }
   };
 
@@ -177,28 +238,36 @@ export default function ArtistProfile() {
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={isFollowing ? styles.followingButton : styles.followButton}
-              onPress={handleFollow}
-              disabled={followingArtist}
+              onPress={handleToggleFollow}
+              disabled={loadingFollow}
             >
-              {followingArtist ? (
-                <ActivityIndicator size="small" color={isFollowing ? "#4CAF50" : "#000"} />
+              {loadingFollow ? (
+                <ActivityIndicator size="small" color={isFollowing ? "#fff" : "#000"} />
               ) : (
-                <Text style={isFollowing ? styles.followingText : styles.followText}>
-                  {isFollowing ? 'Following' : 'Follow'}
-                </Text>
+                <>
+                  <Ionicons name={isFollowing ? "heart" : "heart-outline"} size={20} color={isFollowing ? "#fff" : "#000"} />
+                  <Text style={isFollowing ? styles.followingText : styles.followText}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
+                </>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="shuffle" size={24} color="#000" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.playButton}>
-              <Ionicons name="play" size={28} color="#fff" />
+            <TouchableOpacity
+              style={inLibrary ? styles.libraryActiveButton : styles.libraryButton}
+              onPress={handleToggleLibrary}
+              disabled={loadingLibrary}
+            >
+              {loadingLibrary ? (
+                <ActivityIndicator size="small" color={inLibrary ? "#fff" : "#000"} />
+              ) : (
+                <>
+                  <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={20} color={inLibrary ? "#fff" : "#000"} />
+                  <Text style={inLibrary ? styles.libraryActiveText : styles.libraryText}>
+                    {inLibrary ? 'In Library' : 'Library'}
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -219,7 +288,7 @@ export default function ArtistProfile() {
                       const fullSong = await getSongByName(item.title);
                       if (fullSong) {
                         router.push({
-                          pathname: '/play-audio',
+                          pathname: '/song-details',
                           params: { song: JSON.stringify(fullSong) }
                         });
                       } else {
@@ -439,17 +508,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   followButton: {
-    paddingHorizontal: 32,
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ccc',
   },
   followingButton: {
-    paddingHorizontal: 32,
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#000',
+    backgroundColor: '#E91E63',
+    borderWidth: 1,
+    borderColor: '#E91E63',
   },
   followText: {
     fontSize: 14,
@@ -457,6 +534,37 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   followingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  libraryButton: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  libraryActiveButton: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#00BCD4',
+    borderWidth: 1,
+    borderColor: '#00BCD4',
+  },
+  libraryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  libraryActiveText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',

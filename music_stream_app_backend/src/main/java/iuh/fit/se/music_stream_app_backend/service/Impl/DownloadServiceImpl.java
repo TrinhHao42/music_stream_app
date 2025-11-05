@@ -71,8 +71,6 @@ public class DownloadServiceImpl implements DownloadService {
 
         downloadTokenRepository.save(downloadToken);
 
-        log.info("Generated download token for user {} for song {}", userId, songId);
-
         // 4. Calculate file size (estimate from URL or set default)
         long estimatedSize = 5 * 1024 * 1024; // Default 5MB
 
@@ -103,7 +101,6 @@ public class DownloadServiceImpl implements DownloadService {
 
         // 2. Verify token belongs to requesting user
         if (!downloadToken.getUserId().equals(userId)) {
-            log.warn("User {} attempted to use token belonging to user {}", userId, downloadToken.getUserId());
             throw new UnauthorizedException("This download token does not belong to you");
         }
 
@@ -124,7 +121,6 @@ public class DownloadServiceImpl implements DownloadService {
         downloadToken.setUsedAt(now);
         downloadTokenRepository.save(downloadToken);
 
-        log.info("User {} downloading song {} using token {}", userId, song.getTitle(), token);
 
         // 6. Return file resource from URL
         try {
@@ -137,7 +133,6 @@ public class DownloadServiceImpl implements DownloadService {
                 throw new ResourceNotFoundException("File", "url", song.getAudioUrl());
             }
         } catch (MalformedURLException e) {
-            log.error("Invalid audio URL for song {}: {}", song.getSongId(), song.getAudioUrl(), e);
             throw new IllegalStateException("Invalid audio URL");
         } catch (IOException e) {
             log.error("Error accessing audio file for song {}", song.getSongId(), e);
@@ -150,6 +145,5 @@ public class DownloadServiceImpl implements DownloadService {
     public void cleanupExpiredTokens() {
         LocalDateTime now = LocalDateTime.now();
         downloadTokenRepository.deleteByExpiresAtBefore(now);
-        log.info("Cleaned up expired download tokens");
     }
 }

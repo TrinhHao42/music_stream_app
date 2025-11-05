@@ -49,30 +49,18 @@ public class LibraryServiceImpl implements LibraryService {
     public LibraryResponse getLibraryByUserId(String userId) {
         Library library = getOrCreateLibrary(userId);
 
-        log.info("=== DEBUG LIBRARY ===");
-        log.info("User ID: {}", userId);
-        log.info("Favourite playlist IDs from library: {}", library.getFavouritePlaylists());
-
         // Test direct query
         if (!library.getFavouritePlaylists().isEmpty()) {
             String testPlaylistId = library.getFavouritePlaylists().get(0);
-            log.info("Testing direct query for playlist ID: {}", testPlaylistId);
 
             // Try to find by ID directly
             var foundPlaylist = playlistRepository.findById(testPlaylistId);
-            log.info("Direct findById result: {}", foundPlaylist.isPresent() ? "FOUND" : "NOT FOUND");
-            if (foundPlaylist.isPresent()) {
-                log.info("Playlist details: {}", foundPlaylist.get());
-            }
 
             // Try to count all playlists
             long totalPlaylists = playlistRepository.count();
-            log.info("Total playlists in database: {}", totalPlaylists);
 
             // Try to find all playlists
             List<Playlist> allPlaylists = playlistRepository.findAll();
-            log.info("All playlist IDs in database: {}",
-                allPlaylists.stream().map(Playlist::getPlaylistId).collect(Collectors.toList()));
         }
 
         // Fetch actual objects
@@ -88,20 +76,11 @@ public class LibraryServiceImpl implements LibraryService {
 
         List<Playlist> playlists = library.getFavouritePlaylists().stream()
                 .map(playlistId -> {
-                    log.info("Looking up playlist with ID: {}", playlistId);
                     Playlist playlist = playlistRepository.findById(playlistId).orElse(null);
-                    if (playlist == null) {
-                        log.error("❌ Playlist NOT FOUND with ID: {}", playlistId);
-                    } else {
-                        log.info("✅ Found playlist: {} (ID: {})", playlist.getPlaylistName(), playlist.getPlaylistId());
-                    }
                     return playlist;
                 })
                 .filter(playlist -> playlist != null)
                 .collect(Collectors.toList());
-
-        log.info("Final playlist count: {}", playlists.size());
-        log.info("=== END DEBUG ===");
 
         List<Artist> artists = library.getFavouriteArtists().stream()
                 .map(artistId -> artistRepository.findById(artistId).orElse(null))
@@ -188,6 +167,11 @@ public class LibraryServiceImpl implements LibraryService {
     public Library removePlaylistFromLibrary(String userId, String playlistId) {
         Library library = getOrCreateLibrary(userId);
         library.getFavouritePlaylists().remove(playlistId);
+
+        // Xóa playlist khỏi database
+        playlistRepository.deleteById(playlistId);
+        log.info("Deleted playlist {} from database when removing from library", playlistId);
+
         return libraryRepository.save(library);
     }
 

@@ -139,7 +139,7 @@ export default function HomeScreen() {
                 style={styles.card}
                 onPress={() =>
                   router.push({
-                    pathname: "/play-audio",
+                    pathname: "/song-details",
                     params: { song: JSON.stringify(song) },
                   })
                 }
@@ -180,7 +180,7 @@ export default function HomeScreen() {
               style={[styles.chartCard, { backgroundColor: "#E8D5FF" }]}
               onPress={() =>
                 router.push({
-                  pathname: "/playlist-details",
+                  pathname: "/top-details",
                   params: {
                     title: "Top 50 - Canada",
                     subtitle: "Daily chart-toppers update",
@@ -198,7 +198,7 @@ export default function HomeScreen() {
               style={[styles.chartCard, { backgroundColor: "#E0F2FE" }]}
               onPress={() =>
                 router.push({
-                  pathname: "/playlist-details",
+                  pathname: "/top-details",
                   params: {
                     title: "Top 50 - Global",
                     subtitle: "Daily chart-toppers update",
@@ -216,7 +216,7 @@ export default function HomeScreen() {
               style={[styles.chartCard, { backgroundColor: "#FEF3C7" }]}
               onPress={() =>
                 router.push({
-                  pathname: "/playlist-details",
+                  pathname: "/top-details",
                   params: {
                     title: "Top 50 - Trending",
                     subtitle: "Daily chart-toppers update",
@@ -307,9 +307,6 @@ export default function HomeScreen() {
                   cachePolicy="memory-disk"
                 />
                 <Text style={styles.artistName}>{artist.artistName}</Text>
-                <TouchableOpacity style={styles.followButton}>
-                  <Text style={styles.followButtonText}>Follow</Text>
-                </TouchableOpacity>
               </TouchableOpacity>
             ))}
           </ScrollView>

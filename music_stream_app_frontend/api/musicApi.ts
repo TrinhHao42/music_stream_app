@@ -348,7 +348,15 @@ export async function updateUser(userId: string, userData: Partial<User>): Promi
 // Thêm album vào danh sách yêu thích
 export async function addFavouriteAlbum(user: User, album: Album): Promise<User | null> {
   try {
-    // Tạo user mới với album được thêm vào favouriteAlbums
+    // Bước 1: Thêm album vào library backend
+    const addedToLibrary = await addAlbumToLibrary(user.userId, album.albumId);
+    
+    if (!addedToLibrary) {
+      console.error('Failed to add album to library');
+      return null;
+    }
+
+    // Bước 2: Cập nhật user object với album mới
     const updatedFavouriteAlbums = [...(user.favouriteAlbums || [])];
     if (!updatedFavouriteAlbums.includes(album.albumId)) {
       updatedFavouriteAlbums.push(album.albumId);
@@ -363,16 +371,16 @@ export async function addFavouriteAlbum(user: User, album: Album): Promise<User 
       favouriteAlbums: updatedFavouriteAlbums,
     };
 
-    // Bước 1: Cập nhật user (quan trọng nhất)
+    // Bước 3: Cập nhật user
     const updatedUser = await updateUser(user.userId, updatedUserData);
     
     if (!updatedUser) {
       return null;
     }
 
-    // Bước 2: Cập nhật album favourites (có thể fail nhưng không ảnh hưởng user)
+    // Bước 4: Cập nhật album favourites count (có thể fail nhưng không ảnh hưởng)
     updateAlbumFavourites(album.albumId, album.favourites + 1).catch((error) => {
-      console.error('Failed to update album favourites, but user is updated:', error);
+      console.error('Failed to update album favourites count, but album is added:', error);
     });
 
     return updatedUser;
@@ -385,7 +393,15 @@ export async function addFavouriteAlbum(user: User, album: Album): Promise<User 
 // Xóa album khỏi danh sách yêu thích
 export async function removeFavouriteAlbum(user: User, album: Album): Promise<User | null> {
   try {
-    // Tạo user mới với album được xóa khỏi favouriteAlbums
+    // Bước 1: Xóa album khỏi library backend
+    const removedFromLibrary = await removeAlbumFromLibrary(user.userId, album.albumId);
+    
+    if (!removedFromLibrary) {
+      console.error('Failed to remove album from library');
+      return null;
+    }
+
+    // Bước 2: Cập nhật user object
     const updatedFavouriteAlbums = (user.favouriteAlbums || []).filter(id => id !== album.albumId);
 
     // Tạo user object mới với tất cả thông tin cũ + favouriteAlbums mới
@@ -397,21 +413,98 @@ export async function removeFavouriteAlbum(user: User, album: Album): Promise<Us
       favouriteAlbums: updatedFavouriteAlbums,
     };
 
-    // Bước 1: Cập nhật user (quan trọng nhất)
+    // Bước 3: Cập nhật user
     const updatedUser = await updateUser(user.userId, updatedUserData);
     
     if (!updatedUser) {
       return null;
     }
 
-    // Bước 2: Cập nhật album favourites (có thể fail nhưng không ảnh hưởng user)
+    // Bước 4: Cập nhật album favourites count (có thể fail nhưng không ảnh hưởng)
     updateAlbumFavourites(album.albumId, Math.max(0, album.favourites - 1)).catch((error) => {
-      console.error('Failed to update album favourites, but user is updated:', error);
+      console.error('Failed to update album favourites count, but album is removed:', error);
     });
 
     return updatedUser;
   } catch (error) {
     console.error('Error removing favourite album:', error);
+    return null;
+  }
+}
+
+// Thêm artist vào danh sách theo dõi (followList)
+export async function addFavouriteArtist(user: User, artist: Artist): Promise<User | null> {
+  try {
+    // Bước 1: Thêm artist vào library backend
+    const addedToLibrary = await addArtistToLibrary(user.userId, artist.artistId);
+    
+    if (!addedToLibrary) {
+      console.error('Failed to add artist to library');
+      return null;
+    }
+
+    // Bước 2: Cập nhật user object với artist mới vào followList
+    const updatedFollowList = [...(user.followList || [])];
+    if (!updatedFollowList.includes(artist.artistId)) {
+      updatedFollowList.push(artist.artistId);
+    }
+
+    // Tạo user object mới với tất cả thông tin cũ + followList mới
+    const updatedUserData: Partial<User> = {
+      userName: user.userName,
+      playlists: user.playlists,
+      followList: updatedFollowList,
+      likeList: user.likeList,
+      favouriteAlbums: user.favouriteAlbums,
+    };
+
+    // Bước 3: Cập nhật user
+    const updatedUser = await updateUser(user.userId, updatedUserData);
+    
+    if (!updatedUser) {
+      return null;
+    }
+
+    return updatedUser;
+  } catch (error) {
+    console.error('Error adding favourite artist:', error);
+    return null;
+  }
+}
+
+// Xóa artist khỏi danh sách theo dõi
+export async function removeFavouriteArtist(user: User, artist: Artist): Promise<User | null> {
+  try {
+    // Bước 1: Xóa artist khỏi library backend
+    const removedFromLibrary = await removeArtistFromLibrary(user.userId, artist.artistId);
+    
+    if (!removedFromLibrary) {
+      console.error('Failed to remove artist from library');
+      return null;
+    }
+
+    // Bước 2: Cập nhật user object - xóa artist khỏi followList
+    const updatedFollowList = (user.followList || []).filter(id => id !== artist.artistId);
+
+    // Tạo user object mới với tất cả thông tin cũ + followList mới
+    const updatedUserData: Partial<User> = {
+      userName: user.userName,
+      playlists: user.playlists,
+      followList: updatedFollowList,
+      likeList: user.likeList,
+      favouriteAlbums: user.favouriteAlbums,
+    };
+
+    // Bước 3: Cập nhật user
+    const updatedUser = await updateUser(user.userId, updatedUserData);
+    
+    if (!updatedUser) {
+      return null;
+    }
+
+    return updatedUser;
+  } catch (error) {
+    console.error('Error removing favourite artist:', error);
     return null;
   }
 }
@@ -664,4 +757,6 @@ export default {
   updateAlbumFavourites,
   addFavouriteAlbum,
   removeFavouriteAlbum,
+  addFavouriteArtist,
+  removeFavouriteArtist,
 };

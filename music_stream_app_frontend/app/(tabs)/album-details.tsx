@@ -1,4 +1,4 @@
-import { addFavouriteAlbum, addSongToLibrary, addSongToPlaylist, getSongByName, getUserPlaylists, removeFavouriteAlbum } from '@/api/musicApi';
+import { addAlbumToLibrary, addFavouriteAlbum, addSongToLibrary, addSongToPlaylist, getSongByName, getUserPlaylists, removeAlbumFromLibrary, removeFavouriteAlbum } from '@/api/musicApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -6,15 +6,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 import { Album, Playlist, Song } from '@/types';
@@ -25,8 +25,9 @@ const AlbumDetailsScreen = () => {
   const { user, refreshUserData } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
+  const [inLibrary, setInLibrary] = useState(false);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
-  const [savingAlbum, setSavingAlbum] = useState(false);
   
   // States for menu and playlist modal
   const [menuVisible, setMenuVisible] = useState(false);
@@ -93,7 +94,7 @@ const AlbumDetailsScreen = () => {
       const song = await getSongByName(songTitle);
       if (song) {
         router.push({
-          pathname: '/play-audio',
+          pathname: '/song-details',
           params: {
             song: JSON.stringify(song),
           },
@@ -165,6 +166,42 @@ const AlbumDetailsScreen = () => {
       Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setLoadingSave(false);
+    }
+  };
+
+  const handleToggleLibrary = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Please login to add album to library');
+      return;
+    }
+
+    const previousState = inLibrary;
+    setInLibrary(!inLibrary);
+    setLoadingLibrary(true);
+
+    try {
+      let success = false;
+      
+      if (previousState) {
+        // Remove from library
+        success = await removeAlbumFromLibrary(user.userId, album.albumId);
+      } else {
+        // Add to library
+        success = await addAlbumToLibrary(user.userId, album.albumId);
+      }
+
+      if (!success) {
+        setInLibrary(previousState);
+        Alert.alert('Error', 'Failed to update library');
+      } else {
+        Alert.alert('Success', previousState ? 'Album removed from library' : 'Album added to library');
+      }
+    } catch (error) {
+      console.error('Error toggling library:', error);
+      setInLibrary(previousState);
+      Alert.alert('Error', 'Something went wrong');
+    } finally {
+      setLoadingLibrary(false);
     }
   };
 
@@ -251,7 +288,7 @@ const AlbumDetailsScreen = () => {
           />
           <Text style={styles.albumTitle}>{album.albumName}</Text>
           <Text style={styles.artistName}>
-            {Array.isArray(album.artists) ? album.artists.join(', ') : 'Unknown Artist'}
+            {Array.isArray(album.artists) ? album.artists[0] : 'Unknown Artist'}
           </Text>
           <Text style={styles.albumMeta}>
             Album • {album.songs?.length || 0} songs • {album.release}
@@ -259,6 +296,7 @@ const AlbumDetailsScreen = () => {
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
+            {/* Save to Favourites Button */}
             <TouchableOpacity 
               style={isSaved ? styles.savedButton : styles.saveButton}
               onPress={handleToggleSave}
@@ -267,22 +305,31 @@ const AlbumDetailsScreen = () => {
               {loadingSave ? (
                 <ActivityIndicator size="small" color={isSaved ? "#fff" : "#000"} />
               ) : (
-                <Text style={isSaved ? styles.savedText : styles.saveText}>
-                  {isSaved ? 'Saved' : 'Save'}
-                </Text>
+                <>
+                  <Ionicons name={isSaved ? "heart" : "heart-outline"} size={18} color={isSaved ? "#fff" : "#000"} />
+                  <Text style={isSaved ? styles.savedText : styles.saveText}>
+                    {isSaved ? 'Liked' : 'Like'}
+                  </Text>
+                </>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="shuffle" size={24} color="#000" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.playButton}>
-              <Ionicons name="play" size={28} color="#fff" />
+            {/* Add to Library Button */}
+            <TouchableOpacity 
+              style={inLibrary ? styles.libraryActiveButton : styles.libraryButton}
+              onPress={handleToggleLibrary}
+              disabled={loadingLibrary}
+            >
+              {loadingLibrary ? (
+                <ActivityIndicator size="small" color={inLibrary ? "#fff" : "#000"} />
+              ) : (
+                <>
+                  <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={18} color={inLibrary ? "#fff" : "#000"} />
+                  <Text style={inLibrary ? styles.libraryActiveText : styles.libraryText}>
+                    {inLibrary ? 'In Library' : 'Library'}
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -457,17 +504,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   saveButton: {
-    paddingHorizontal: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ccc',
   },
   savedButton: {
-    paddingHorizontal: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#000',
+    backgroundColor: '#E53935',
   },
   saveText: {
     fontSize: 14,
@@ -475,6 +528,35 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   savedText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  libraryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  libraryActiveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#1ce5ff',
+  },
+  libraryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  libraryActiveText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',

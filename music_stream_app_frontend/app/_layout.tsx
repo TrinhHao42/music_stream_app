@@ -24,8 +24,6 @@ export default function RootLayout() {
                 <Stack.Screen name="launch" options={{ headerShown: false }} />
                 <Stack.Screen name="play-audio" options={{ headerShown: false }} />
                 <Stack.Screen name="song-details" options={{ headerShown: false }} />
-                <Stack.Screen name="downloaded-songs" options={{ headerShown: false }} />
-                <Stack.Screen name="playlist-details" options={{ headerShown: false }} />
                 </Stack>
               <MiniPlayer />
             </SafeAreaView>
