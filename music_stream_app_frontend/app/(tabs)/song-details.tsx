@@ -1,4 +1,5 @@
 import { getDownloadStreamUrl, getDownloadToken } from '@/api/musicApi';
+import { useAuth } from '@/contexts/AuthContext';
 import Song from '@/types/Song';
 import formatCompactNumber from '@/utils/FormatCompactNumber';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,7 @@ const formatDuration = (seconds: number): string => {
 export default function SongDetails() {
   const router = useRouter();
   const params = useLocalSearchParams<{ song: string }>();
+  const { isPremium } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
@@ -77,7 +79,7 @@ export default function SongDetails() {
 
       // Get download URL
       const downloadUrl = getDownloadStreamUrl(tokenResponse.token);
-      
+
       // Create file
       const fileName = `${song.title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
       const file = new File(Paths.document, fileName);
@@ -120,15 +122,15 @@ export default function SongDetails() {
 
       const blob = await response.blob();
       const reader = new FileReader();
-      
+
       reader.onloadend = async () => {
         try {
           const arrayBuffer = reader.result as ArrayBuffer;
           const uint8Array = new Uint8Array(arrayBuffer);
-          
+
           // Write to file
           await file.write(uint8Array);
-          
+
           Alert.alert('Success', 'Song downloaded successfully!');
           console.log('Downloaded to:', file.uri);
         } catch (error) {
@@ -139,7 +141,7 @@ export default function SongDetails() {
           setDownloadProgress(0);
         }
       };
-      
+
       reader.readAsArrayBuffer(blob);
     } catch (error) {
       console.error('Download error:', error);
@@ -197,7 +199,7 @@ export default function SongDetails() {
 
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.playButton}
               onPress={handlePlaySong}
             >
@@ -205,25 +207,29 @@ export default function SongDetails() {
               <Text style={styles.playButtonText}>Play</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.downloadButton, isDownloading && styles.downloadingButton]}
-              onPress={handleDownload}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <>
-                  <Ionicons name="hourglass" size={24} color="#000" />
-                  <Text style={styles.downloadButtonText}>
-                    {downloadProgress > 0 ? `${Math.round(downloadProgress)}%` : 'Downloading...'}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="download" size={24} color="#000" />
-                  <Text style={styles.downloadButtonText}>Download</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {
+              isPremium && (
+                <TouchableOpacity
+                  style={[styles.downloadButton, isDownloading && styles.downloadingButton]}
+                  onPress={handleDownload}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <>
+                      <Ionicons name="hourglass" size={24} color="#000" />
+                      <Text style={styles.downloadButtonText}>
+                        {downloadProgress > 0 ? `${Math.round(downloadProgress)}%` : 'Downloading...'}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="download" size={24} color="#000" />
+                      <Text style={styles.downloadButtonText}>Download</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )
+            }
           </View>
         </View>
 
