@@ -20,7 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
     user: null,
     isPremium: false,
-    setUser: () => {},
+    setUser: () => { },
     accessToken: null,
     refreshToken: null,
     isLoading: true,
@@ -34,7 +34,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [isPremium, setIsPremium ] = useState<boolean>(false);
+    const [isPremium, setIsPremium] = useState<boolean>(false);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [refreshToken, setRefreshToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -49,11 +49,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const storedAccessToken = await storage.getItem('accessToken');
             const storedRefreshToken = await storage.getItem('refreshToken');
             const storedUser = await storage.getItem('user');
+            const storedIsPremium = await storage.getItem('isPremium');
 
             if (storedAccessToken && storedRefreshToken && storedUser) {
                 setAccessToken(storedAccessToken);
                 setRefreshToken(storedRefreshToken);
                 setUser(JSON.parse(storedUser));
+                if (storedIsPremium !== null) {
+                    setIsPremium(JSON.parse(storedIsPremium) === true);
+                }
             }
         } catch (error) {
             console.error('Error loading stored auth:', error);
@@ -133,10 +137,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             await storage.removeItem('accessToken');
             await storage.removeItem('refreshToken');
             await storage.removeItem('user');
+            await storage.removeItem('isPremium');
 
             // Clear state
             setAccessToken(null);
             setRefreshToken(null);
+            setIsPremium(false);
             setUser(null);
         } catch (error) {
             console.error('Error clearing storage:', error);
@@ -144,15 +150,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setAccessToken(null);
             setRefreshToken(null);
             setUser(null);
+            setIsPremium(false);
         }
     };
 
     const refreshUserData = async () => {
         try {
             const userData = await getCurrentUser();
+            console.log(userData);
             if (userData) {
                 setUser(userData);
+                setIsPremium(Boolean(userData.isPremium));
                 await storage.setItem('user', JSON.stringify(userData));
+                await storage.setItem('isPremium', JSON.stringify(userData.isPremium));
             }
         } catch (error) {
             console.error('Error refreshing user data:', error);
