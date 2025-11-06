@@ -183,7 +183,7 @@ export default function LaunchScreen() {
       {/* Nút quay lại */}
       <TouchableOpacity 
         style={styles.mainBackButton}
-        onPress={() => router.back()}
+        onPress={() => router.push('/(tabs)' as any)}
         activeOpacity={0.8}
       >
         <FontAwesome name="arrow-left" size={24} color="#fff" />

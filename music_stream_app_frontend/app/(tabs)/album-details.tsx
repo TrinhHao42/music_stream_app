@@ -126,7 +126,7 @@ const AlbumDetailsScreen = () => {
 
   const handleToggleLibrary = async () => {
     if (!user) {
-      Alert.alert('Yêu cầu đăng nhập', 'Bạn cần đăng nhập để thêm album vào thư viện');
+      Alert.alert('Login required', 'Please sign in to modify your library');
       return;
     }
 
@@ -147,12 +147,9 @@ const AlbumDetailsScreen = () => {
 
       if (!success) {
         setInLibrary(previousState);
-        Alert.alert('Lỗi', 'Không thể cập nhật thư viện');
+        Alert.alert('Error', 'Unable to update library');
       } else {
-        Alert.alert(
-          'Thành công', 
-          previousState ? 'Đã xóa album khỏi thư viện' : 'Đã thêm album vào thư viện'
-        );
+        Alert.alert('Success', previousState ? 'Removed album from library' : 'Added album to library');
         
         // Refresh user data và kiểm tra lại trạng thái album
         await refreshUserData();
@@ -161,7 +158,7 @@ const AlbumDetailsScreen = () => {
     } catch (error) {
       console.error('Error toggling library:', error);
       setInLibrary(previousState);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
+      Alert.alert('Error', 'An error occurred, please try again');
     } finally {
       setLoadingLibrary(false);
     }
@@ -297,7 +294,7 @@ const AlbumDetailsScreen = () => {
                 <>
                   <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={20} color={inLibrary ? "#fff" : "#000"} />
                   <Text style={inLibrary ? styles.libraryActiveText : styles.libraryText}>
-                    {inLibrary ? 'Trong thư viện' : 'Thêm vào thư viện'}
+                    {inLibrary ? 'In Library' : 'Add to Library'}
                   </Text>
                 </>
               )}
