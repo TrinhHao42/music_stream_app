@@ -179,13 +179,13 @@ const LibraryScreen = () => {
     try {
       const success = await removeFavouriteSong(user.userId, songId);
       if (success) {
-        Alert.alert('Thành công', 'Đã xóa bài hát khỏi danh sách yêu thích');
+        Alert.alert('Success', 'Removed song from favourites');
         await loadLibrary(true);
       } else {
-        Alert.alert('Lỗi', 'Không thể xóa bài hát');
+        Alert.alert('Error', 'Unable to remove song');
       }
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể xóa bài hát');
+      Alert.alert('Error', 'Unable to remove song');
     }
   }, [user, loadLibrary]);
 
@@ -194,13 +194,13 @@ const LibraryScreen = () => {
     try {
       const success = await removeFavouriteAlbum(user.userId, albumId);
       if (success) {
-        Alert.alert('Thành công', 'Đã xóa album khỏi danh sách yêu thích');
+        Alert.alert('Success', 'Removed album from favourites');
         await loadLibrary(true);
       } else {
-        Alert.alert('Lỗi', 'Không thể xóa album');
+        Alert.alert('Error', 'Unable to remove album');
       }
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể xóa album');
+      Alert.alert('Error', 'Unable to remove album');
     }
   }, [user, loadLibrary]);
 
@@ -209,13 +209,13 @@ const LibraryScreen = () => {
     try {
       const success = await removeFavouriteArtist(user.userId, artistId);
       if (success) {
-        Alert.alert('Thành công', 'Đã bỏ theo dõi nghệ sĩ');
+        Alert.alert('Success', 'Unfollowed artist');
         await loadLibrary(true);
       } else {
-        Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
+        Alert.alert('Error', 'Unable to unfollow artist');
       }
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
+      Alert.alert('Error', 'Unable to unfollow artist');
     }
   }, [user, loadLibrary]);
 
@@ -224,13 +224,13 @@ const LibraryScreen = () => {
     try {
       const success = await removePlaylistFromLibrary(user.userId, playlistId);
       if (success) {
-        Alert.alert('Thành công', 'Đã xóa playlist khỏi thư viện');
+        Alert.alert('Success', 'Removed playlist from library');
         await loadLibrary(true);
       } else {
-        Alert.alert('Lỗi', 'Không thể xóa playlist');
+        Alert.alert('Error', 'Unable to remove playlist');
       }
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể xóa playlist');
+      Alert.alert('Error', 'Unable to remove playlist');
     }
   }, [user, loadLibrary]);
 

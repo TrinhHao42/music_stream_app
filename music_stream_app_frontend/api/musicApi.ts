@@ -531,7 +531,8 @@ export async function logout(): Promise<boolean> {
 // Library APIs
 export async function createLibrary(userId: string): Promise<boolean> {
   try {
-    await axiosInstance.post('/libraries', { userId });
+    await axiosInstance.post(`/libraries/create/${userId}`);
+    console.log('Library created successfully for user:', userId);
     return true;
   } catch (error: any) {
     console.error('Error creating library:', error);
@@ -613,8 +614,14 @@ export async function addAlbumToLibrary(userId: string, albumId: string): Promis
   try {
     await axiosInstance.post(`/libraries/${userId}/albums`, { itemId: albumId });
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding album to library:', error);
+    // If album already exists (409) or other errors, return false
+    if (error.response?.status === 409) {
+      console.log('Album already in library');
+    } else if (error.response?.status === 500) {
+      console.error('Server error when adding album:', error.response?.data);
+    }
     return false;
   }
 }

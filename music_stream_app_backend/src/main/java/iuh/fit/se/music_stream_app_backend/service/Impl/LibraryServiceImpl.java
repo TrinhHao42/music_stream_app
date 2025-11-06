@@ -27,7 +27,7 @@ public class LibraryServiceImpl implements LibraryService {
     private final ArtistRepository artistRepository;
 
     @Override
-    public Library getOrCreateLibrary(String userId) {
+    public Library createLibrary(String userId) {
         // Verify user exists
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
@@ -47,7 +47,7 @@ public class LibraryServiceImpl implements LibraryService {
 
     @Override
     public LibraryResponse getLibraryByUserId(String userId) {
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
 
         // Test direct query
         if (!library.getFavouritePlaylists().isEmpty()) {
@@ -104,7 +104,7 @@ public class LibraryServiceImpl implements LibraryService {
         songRepository.findById(songId)
                 .orElseThrow(() -> new ResourceNotFoundException("Song", "id", songId));
 
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
 
         if (!library.getFavouriteSongs().contains(songId)) {
             library.getFavouriteSongs().add(songId);
@@ -117,7 +117,7 @@ public class LibraryServiceImpl implements LibraryService {
     @Override
     @Transactional
     public Library removeSongFromLibrary(String userId, String songId) {
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
         library.getFavouriteSongs().remove(songId);
         return libraryRepository.save(library);
     }
@@ -129,7 +129,7 @@ public class LibraryServiceImpl implements LibraryService {
         albumRepository.findById(albumId)
                 .orElseThrow(() -> new ResourceNotFoundException("Album", "id", albumId));
 
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
 
         if (!library.getFavouriteAlbums().contains(albumId)) {
             library.getFavouriteAlbums().add(albumId);
@@ -142,7 +142,7 @@ public class LibraryServiceImpl implements LibraryService {
     @Override
     @Transactional
     public Library removeAlbumFromLibrary(String userId, String albumId) {
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
         library.getFavouriteAlbums().remove(albumId);
         return libraryRepository.save(library);
     }
@@ -152,7 +152,7 @@ public class LibraryServiceImpl implements LibraryService {
     public Library addPlaylistToLibrary(String userId, String playlistId) {
         // Skip verification since playlist was just created
         // The playlist exists but may not be visible in the same transaction
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
 
         if (!library.getFavouritePlaylists().contains(playlistId)) {
             library.getFavouritePlaylists().add(playlistId);
@@ -165,7 +165,7 @@ public class LibraryServiceImpl implements LibraryService {
     @Override
     @Transactional
     public Library removePlaylistFromLibrary(String userId, String playlistId) {
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
         library.getFavouritePlaylists().remove(playlistId);
 
         // Xóa playlist khỏi database
@@ -182,7 +182,7 @@ public class LibraryServiceImpl implements LibraryService {
         artistRepository.findById(artistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Artist", "id", artistId));
 
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
 
         if (!library.getFavouriteArtists().contains(artistId)) {
             library.getFavouriteArtists().add(artistId);
@@ -195,7 +195,7 @@ public class LibraryServiceImpl implements LibraryService {
     @Override
     @Transactional
     public Library removeArtistFromLibrary(String userId, String artistId) {
-        Library library = getOrCreateLibrary(userId);
+        Library library = createLibrary(userId);
         library.getFavouriteArtists().remove(artistId);
         return libraryRepository.save(library);
     }

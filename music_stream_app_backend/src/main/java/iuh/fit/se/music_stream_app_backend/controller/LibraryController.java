@@ -18,6 +18,13 @@ public class LibraryController {
 
     private final LibraryService libraryService;
 
+    @PostMapping("/create/{userId}")
+    @Operation(summary = "Create library for user", description = "Create a new library for a user")
+    public ResponseEntity<Library> createLibrary(@PathVariable String userId) {
+        Library library = libraryService.createLibrary(userId);
+        return ResponseEntity.ok(library);
+    }
+
     @GetMapping("/{userId}")
     @Operation(summary = "Get user's library", description = "Get all favorite items in user's library")
     public ResponseEntity<LibraryResponse> getLibrary(@PathVariable String userId) {

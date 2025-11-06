@@ -36,11 +36,14 @@ const LibraryAlbumItem = ({ album, showAddToLibrary = false }: Props) => {
             if (success) {
                 Alert.alert('Success', 'Album added to library');
             } else {
-                Alert.alert('Error', 'Failed to add album to library');
+                Alert.alert('Error', 'This album may already be in your library or cannot be added');
             }
-        } catch (error) {
-            console.error('Error adding to library:', error);
-            Alert.alert('Error', 'Failed to add album to library');
+        } catch (error: any) {
+            console.error('Error adding album to library:', error);
+            const errorMessage = error?.response?.data?.message || 
+                                error?.message || 
+                                'Failed to add album to library';
+            Alert.alert('Error', errorMessage);
         }
     };
 
@@ -63,10 +66,10 @@ const LibraryAlbumItem = ({ album, showAddToLibrary = false }: Props) => {
             />
             <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.title}>{album.albumName}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1, paddingRight: 8, flexDirection: 'row', alignItems: 'center' }}>
-                        <Text numberOfLines={1} style={{ color: '#777' }}>{shownArtists || 'Unknown'}{hasMoreArtists ? ' ...' : ''}</Text>
-                    </View>
+                <Text numberOfLines={1} style={{ color: '#777', fontSize: 13, marginTop: 2 }}>
+                    {shownArtists || 'Unknown'}{hasMoreArtists ? ' ...' : ''}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                     <View style={styles.countBadge}>
                         <Entypo name="music" size={12} color="#fff" />
                         <Text style={styles.countText}>{songsCount}</Text>

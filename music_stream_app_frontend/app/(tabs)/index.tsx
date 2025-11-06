@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -53,8 +52,8 @@ export default function HomeScreen() {
 
   // Nếu chưa đăng nhập, hiển thị avatar mặc định
   const avatarSource = isLoggedIn
-    ? require("@/assets/images/logo/user-line.png")
-    : require("@/assets/images/logo/Frame1.png");
+    ? require("@/assets/images/userIcon/login.png")
+    : require("@/assets/images/userIcon/logout.png");
 
   return (
     <View style={styles.container}>
@@ -69,12 +68,11 @@ export default function HomeScreen() {
             <View>
               <Text style={styles.greeting}>Hello there,</Text>
               <Text
-                
                 style={styles.userName}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {user?.userName || "User"}
+                {user?.userName || "Guest"}
               </Text>
             </View>
           ) : (
@@ -103,14 +101,14 @@ export default function HomeScreen() {
       </View>
 
       {/* Search bar */}
-      <View style={styles.searchContainer}>
+      <TouchableOpacity
+        style={styles.searchContainer}
+        activeOpacity={0.7}
+        onPress={() => router.push("/(tabs)/search" as any)}
+      >
         <Ionicons name="search" size={20} color="#8E8E93" />
-        <TextInput
-          placeholder="What you want to listen to"
-          placeholderTextColor="#8E8E93"
-          style={styles.searchInput}
-        />
-      </View>
+        <Text style={styles.searchPlaceholder}>What you want to listen to</Text>
+      </TouchableOpacity>
 
       {/* Content */}
       <ScrollView
@@ -346,7 +344,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   userName: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#000",
     maxWidth: 200,
@@ -359,7 +357,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
   },
   headerRight: {
@@ -372,8 +370,8 @@ const styles = StyleSheet.create({
     height: 30,
   },
   logo: {
-    width: 40,
-    height: 40,
+    width: 60,
+    height: 60,
   },
   searchContainer: {
     flexDirection: "row",
@@ -390,6 +388,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: "#000",
+  },
+  searchPlaceholder: {
+    flex: 1,
+    fontSize: 14,
+    color: "#8E8E93",
   },
   content: {
     flex: 1,

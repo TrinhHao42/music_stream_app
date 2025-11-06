@@ -97,11 +97,11 @@ export default function ArtistProfile() {
   const handleToggleLibrary = async () => {
     if (!user || !artist) {
       Alert.alert(
-        'Yêu cầu đăng nhập',
-        'Bạn cần đăng nhập để thêm nghệ sĩ vào thư viện',
+        'Login required',
+        'Please sign in to modify your library',
         [
-          { text: 'Hủy', style: 'cancel' },
-          { text: 'Đăng nhập', onPress: () => router.push('/launch' as any) },
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign in', onPress: () => router.push('/launch' as any) },
         ]
       );
       return;
@@ -124,9 +124,9 @@ export default function ArtistProfile() {
 
       if (!success) {
         setInLibrary(previousState);
-        Alert.alert('Lỗi', previousState ? 'Không thể xóa nghệ sĩ khỏi thư viện' : 'Không thể thêm nghệ sĩ vào thư viện');
+        Alert.alert('Error', previousState ? 'Unable to remove artist from library' : 'Unable to add artist to library');
       } else {
-        Alert.alert('Thành công', previousState ? 'Đã xóa nghệ sĩ khỏi thư viện' : 'Đã thêm nghệ sĩ vào thư viện');
+        Alert.alert('Success', previousState ? 'Removed artist from library' : 'Added artist to library');
         
         // Refresh user data
         await refreshUserData();
@@ -134,7 +134,7 @@ export default function ArtistProfile() {
     } catch (error) {
       console.error('Error toggling library:', error);
       setInLibrary(previousState);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra');
+      Alert.alert('Error', 'An error occurred');
     } finally {
       setLoadingLibrary(false);
     }

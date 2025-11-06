@@ -303,7 +303,7 @@ const PlaylistDetailsLibraryScreen = () => {
     
     // Check if at least one option is selected
     if (!addToFavorites && !addToCurrentPlaylist && otherPlaylists.length === 0) {
-      Alert.alert('Thông báo', 'Vui lòng chọn ít nhất một nơi để thêm bài hát');
+      Alert.alert('Notice', 'Please select at least one destination');
       return;
     }
 
@@ -317,12 +317,12 @@ const PlaylistDetailsLibraryScreen = () => {
         try {
           const success = await addSongToLibrary(user.userId, recommendedSong.songId);
           if (success) {
-            results.push('✓ Đã thêm vào bài hát yêu thích');
+            results.push('✓ Added to favourites');
           } else {
-            results.push('✗ Không thể thêm vào bài hát yêu thích');
+            results.push('✗ Failed to add to favourites');
           }
         } catch {
-          results.push('✗ Lỗi khi thêm vào bài hát yêu thích');
+          results.push('✗ Error adding to favourites');
         }
       }
 
@@ -331,13 +331,13 @@ const PlaylistDetailsLibraryScreen = () => {
         try {
           const success = await addSongToPlaylist(playlist.playlistId, recommendedSong.songId);
           if (success) {
-            results.push(`✓ Đã thêm vào "${playlist.playlistName}"`);
+            results.push(`✓ Added to "${playlist.playlistName}"`);
             needReloadPlaylist = true; // Đánh dấu cần reload
           } else {
-            results.push(`✗ Không thể thêm vào "${playlist.playlistName}"`);
+            results.push(`✗ Failed to add to "${playlist.playlistName}"`);
           }
         } catch {
-          results.push(`✗ Lỗi khi thêm vào "${playlist.playlistName}"`);
+          results.push(`✗ Error adding to "${playlist.playlistName}"`);
         }
       }
 
@@ -348,18 +348,18 @@ const PlaylistDetailsLibraryScreen = () => {
           try {
             const success = await addSongToPlaylist(playlistId, recommendedSong.songId);
             if (success) {
-              results.push(`✓ Đã thêm vào "${targetPlaylist.playlistName}"`);
+              results.push(`✓ Added to "${targetPlaylist.playlistName}"`);
             } else {
-              results.push(`✗ Không thể thêm vào "${targetPlaylist.playlistName}"`);
+              results.push(`✗ Failed to add to "${targetPlaylist.playlistName}"`);
             }
           } catch {
-            results.push(`✗ Lỗi khi thêm vào "${targetPlaylist.playlistName}"`);
+            results.push(`✗ Error adding to "${targetPlaylist.playlistName}"`);
           }
         }
       }
 
       // Show results
-      Alert.alert('Kết quả', results.join('\n'));
+      Alert.alert('Result', results.join('\n'));
       setAddModalVisible(false);
       
       // Reload playlist nếu đã thêm vào current playlist thành công
@@ -369,7 +369,7 @@ const PlaylistDetailsLibraryScreen = () => {
       }
     } catch (error) {
       console.error('Error adding song:', error);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra khi thêm bài hát');
+      Alert.alert('Error', 'An error occurred while adding the song');
     } finally {
       setAdding(false);
     }
@@ -419,7 +419,7 @@ const PlaylistDetailsLibraryScreen = () => {
     );
   }
 
-  // Nếu vẫn không có playlist sau khi load xong, trở về
+  // If still no playlist after loading, return null
   if (!playlist) {
     return null;
   }
@@ -502,13 +502,13 @@ const PlaylistDetailsLibraryScreen = () => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="musical-notes-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>Chưa có bài hát nào được thêm vào</Text>
+              <Text style={styles.emptyText}>No songs added yet</Text>
               
               {/* Recommended Song */}
               {recommendedSong && (
                 <View style={styles.recommendSection}>
                   <View style={styles.recommendHeader}>
-                    <Text style={styles.recommendTitle}>Gợi ý cho bạn</Text>
+                    <Text style={styles.recommendTitle}>Recommended for you</Text>
                     <TouchableOpacity 
                       style={styles.addButton}
                       onPress={handleOpenAddModal}
@@ -551,7 +551,7 @@ const PlaylistDetailsLibraryScreen = () => {
                 onPress={() => router.push('/(tabs)/search')}
               >
                 <Ionicons name="search" size={20} color="#fff" />
-                <Text style={styles.searchButtonText}>Tìm kiếm bài hát</Text>
+                <Text style={styles.searchButtonText}>Search songs</Text>
               </TouchableOpacity>
             </View>
           }
@@ -568,7 +568,7 @@ const PlaylistDetailsLibraryScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.addModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Thêm bài hát vào</Text>
+              <Text style={styles.modalTitle}>Add song to</Text>
               <TouchableOpacity onPress={() => setAddModalVisible(false)}>
                 <Ionicons name="close" size={28} color="#000" />
               </TouchableOpacity>
@@ -589,7 +589,7 @@ const PlaylistDetailsLibraryScreen = () => {
                     color={selectedOptions.addToFavorites ? "#1ce5ff" : "#999"} 
                   />
                   <Ionicons name="heart" size={20} color="#E53935" style={styles.optionIcon} />
-                  <Text style={styles.optionText}>Bài hát yêu thích</Text>
+                  <Text style={styles.optionText}>Favourites</Text>
                 </TouchableOpacity>
 
                 {/* Add to Current Playlist */}
@@ -611,7 +611,7 @@ const PlaylistDetailsLibraryScreen = () => {
                 {/* Other Playlists */}
                 {allPlaylists.length > 0 && (
                   <>
-                    <Text style={styles.sectionTitle}>Playlists khác</Text>
+                    <Text style={styles.sectionTitle}>Other playlists</Text>
                     {allPlaylists.map((pl) => (
                       <TouchableOpacity 
                         key={pl.playlistId}
@@ -640,7 +640,7 @@ const PlaylistDetailsLibraryScreen = () => {
                 onPress={() => setAddModalVisible(false)}
                 disabled={adding}
               >
-                <Text style={styles.cancelButtonText}>Hủy</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -651,7 +651,7 @@ const PlaylistDetailsLibraryScreen = () => {
                 {adding ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Thêm</Text>
+                  <Text style={styles.confirmButtonText}>Add</Text>
                 )}
               </TouchableOpacity>
             </View>

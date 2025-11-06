@@ -81,7 +81,7 @@ const UserScreen = () => {
         setLibraryStats(stats);
       }
     } catch (error) {
-      console.error("Lỗi khi load library stats:", error);
+      console.error("Error loading library stats:", error);
     }
   };
 
@@ -109,7 +109,7 @@ const UserScreen = () => {
         await loadLibraryStats(userData.userId);
       }
     } catch (error) {
-      console.error("Lỗi khi refresh user:", error);
+      console.error("Error refreshing user:", error);
     } finally {
       setRefreshing(false);
     }
@@ -118,7 +118,7 @@ const UserScreen = () => {
   // Hàm lưu thông tin user lên server
   const handleSaveUser = async () => {
     if (!user || !nameInput.trim()) {
-      Alert.alert("Lỗi", "Tên không được để trống");
+      Alert.alert("Error", "Name cannot be empty");
       return;
     }
 
@@ -139,13 +139,13 @@ const UserScreen = () => {
         await refreshUserData();
 
         setShowEditor(false);
-        Alert.alert("Thành công", "Đã cập nhật tên thành công");
+        Alert.alert("Success", "Updated name successfully");
       } else {
-        Alert.alert("Lỗi", "Không thể cập nhật tên");
+        Alert.alert("Error", "Unable to update name");
       }
     } catch (error) {
-      console.error("Lỗi khi đổi tên user:", error);
-      Alert.alert("Lỗi", "Không thể cập nhật tên");
+      console.error("Error updating user name:", error);
+      Alert.alert("Error", "Unable to update name");
     } finally {
       setSaving(false);
     }
@@ -153,12 +153,12 @@ const UserScreen = () => {
 
   const handleLogout = () => {
     Alert.alert(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất?',
+      'Sign out',
+      'Are you sure you want to sign out?',
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Đăng xuất',
+          text: 'Sign out',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -174,8 +174,8 @@ const UserScreen = () => {
               
               // Show error but still navigate to clear local state
               Alert.alert(
-                'Thông báo',
-                'Đã có lỗi xảy ra nhưng bạn đã được đăng xuất khỏi thiết bị này.',
+                'Notice',
+                'An error occurred but you have been signed out on this device.',
                 [
                   {
                     text: 'OK',
@@ -213,7 +213,7 @@ const UserScreen = () => {
       >
         <ActivityIndicator size="large" color="#11181C" />
         <Text style={{ marginTop: 12, color: "#687076" }}>
-          Đang tải thông tin...
+          Loading user info...
         </Text>
       </View>
     );
@@ -237,10 +237,10 @@ const UserScreen = () => {
             color: "#11181C",
           }}
         >
-          Chưa đăng nhập
+          Not signed in
         </Text>
         <Text style={{ marginTop: 8, color: "#687076", textAlign: "center" }}>
-          Vui lòng đăng nhập để xem thông tin cá nhân
+          Please sign in to view your profile
         </Text>
       </View>
     );
@@ -327,16 +327,16 @@ const UserScreen = () => {
         <View style={styles.editCard}>
           <View style={styles.editHeader}>
             <Ionicons name="create-outline" size={24} color="#667EEA" />
-            <Text style={styles.editTitle}>Chỉnh sửa tên</Text>
+            <Text style={styles.editTitle}>Edit name</Text>
           </View>
           
           <View style={styles.formRow}>
-            <Text style={styles.formLabel}>Tên hiển thị</Text>
+            <Text style={styles.formLabel}>Display name</Text>
             <TextInput
               value={nameInput}
               onChangeText={setNameInput}
               style={styles.formInput}
-              placeholder="Nhập tên mới"
+              placeholder="Enter new name"
               placeholderTextColor="#9CA3AF"
             />
           </View>
@@ -353,7 +353,7 @@ const UserScreen = () => {
               }}
               disabled={saving}
             >
-              <Text style={styles.cancelText}>Hủy</Text>
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
@@ -372,7 +372,7 @@ const UserScreen = () => {
                 ) : (
                   <>
                     <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                    <Text style={styles.saveText}>Lưu</Text>
+                    <Text style={styles.saveText}>Save</Text>
                   </>
                 )}
               </LinearGradient>
@@ -390,19 +390,19 @@ const UserScreen = () => {
         <View style={styles.libraryIconBg}>
           <Ionicons name="library" size={24} color="#667EEA" />
         </View>
-        <Text style={styles.libraryText}>Thư viện của tôi</Text>
+        <Text style={styles.libraryText}>My Library</Text>
         <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
       </TouchableOpacity>
 
       {/* Quick Stats Info */}
       <View style={styles.infoCard}>
-        <Text style={styles.infoCardTitle}>Thống kê chi tiết</Text>
+        <Text style={styles.infoCardTitle}>Detailed statistics</Text>
         
         <View style={styles.infoRow}>
           <View style={[styles.infoIconBg, { backgroundColor: '#FFF4E6' }]}>
             <Ionicons name="disc" size={22} color="#FF8E53" />
           </View>
-          <Text style={styles.infoLabel}>Albums yêu thích</Text>
+          <Text style={styles.infoLabel}>Favourite albums</Text>
           <Text style={styles.infoValue}>{libraryStats.albums}</Text>
         </View>
         
@@ -410,7 +410,7 @@ const UserScreen = () => {
           <View style={[styles.infoIconBg, { backgroundColor: '#FFE6F0' }]}>
             <Ionicons name="heart" size={22} color="#FF6B6B" />
           </View>
-          <Text style={styles.infoLabel}>Bài hát đã thích</Text>
+          <Text style={styles.infoLabel}>Liked songs</Text>
           <Text style={styles.infoValue}>{libraryStats.songs}</Text>
         </View>
         
@@ -426,7 +426,7 @@ const UserScreen = () => {
           <View style={[styles.infoIconBg, { backgroundColor: '#F0E6FF' }]}>
             <Ionicons name="person" size={22} color="#764BA2" />
           </View>
-          <Text style={styles.infoLabel}>Nghệ sĩ theo dõi</Text>
+          <Text style={styles.infoLabel}>Followed artists</Text>
           <Text style={styles.infoValue}>{libraryStats.artists}</Text>
         </View>
       </View>
@@ -446,12 +446,12 @@ const UserScreen = () => {
           {loggingOut ? (
             <>
               <ActivityIndicator size="small" color="#FFFFFF" />
-              <Text style={styles.logoutText}>Đang đăng xuất...</Text>
+              <Text style={styles.logoutText}>Signing out...</Text>
             </>
           ) : (
             <>
               <Ionicons name="log-out" size={22} color="#FFFFFF" />
-              <Text style={styles.logoutText}>Đăng xuất</Text>
+              <Text style={styles.logoutText}>Sign out</Text>
             </>
           )}
         </LinearGradient>

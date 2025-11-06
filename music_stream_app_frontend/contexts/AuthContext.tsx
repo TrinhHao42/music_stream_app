@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { logout as apiLogout, getCurrentUser } from '../api/musicApi';
+import { logout as apiLogout, createLibrary, getCurrentUser, getLibrary } from '../api/musicApi';
 import User from '../types/User';
 import axiosInstance, { setAuthErrorCallback, setAuthenticating } from '../utils/axiosInstance';
 import storage from '../utils/storage';
@@ -124,6 +124,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setRefreshToken(refreshToken);
             setUser(user);
             setIsPremium(isPremium);
+
+            // Auto-create library if not exists (for new users)
+            try {
+                const library = await getLibrary(user.userId);
+                if (!library) {
+                    console.log('Library not found, creating new library for user:', user.userId);
+                    const created = await createLibrary(user.userId);
+                    if (created) {
+                        console.log('Library created successfully');
+                    }
+                }
+            } catch (libraryError) {
+                console.warn('Failed to check/create library (non-critical):', libraryError);
+            }
         } catch (error: any) {
             console.error('Login error:', error);
             console.error('Error response:', error.response?.data);
@@ -161,6 +175,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (error.code === 'ERR_NETWORK') {
                 throw new Error('Cannot connect to server. Please check if backend is running on http://localhost:8080');
+            }
+
+            // Handle specific error codes
+            if (error.response?.status === 409) {
+                throw new Error('This email is already registered. Please use a different email or login.');
             }
 
             throw new Error(error.response?.data?.message || error.message || 'Registration failed');

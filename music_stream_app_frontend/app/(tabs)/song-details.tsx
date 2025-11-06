@@ -87,7 +87,7 @@ export default function SongDetails() {
   // Xử lý mở modal thêm bài hát
   const handleOpenAddModal = async () => {
     if (!user) {
-      Alert.alert('Yêu cầu đăng nhập', 'Bạn cần đăng nhập để thêm bài hát');
+      Alert.alert('Login required', 'Please sign in to add songs');
       return;
     }
     
@@ -154,7 +154,7 @@ export default function SongDetails() {
     
     // Check if at least one option is selected
     if (!addToFavorites && selectedPlaylists.length === 0) {
-      Alert.alert('Thông báo', 'Vui lòng chọn ít nhất một nơi để thêm bài hát');
+      Alert.alert('Notice', 'Please select at least one destination');
       return;
     }
 
@@ -167,12 +167,12 @@ export default function SongDetails() {
         try {
           const success = await addSongToLibrary(user.userId, song.songId);
           if (success) {
-            results.push('✓ Đã thêm vào bài hát yêu thích');
+            results.push('✓ Added to favourites');
           } else {
-            results.push('✗ Không thể thêm vào bài hát yêu thích');
+            results.push('✗ Failed to add to favourites');
           }
         } catch {
-          results.push('✗ Lỗi khi thêm vào bài hát yêu thích');
+          results.push('✗ Error adding to favourites');
         }
       }
 
@@ -183,22 +183,22 @@ export default function SongDetails() {
           try {
             const success = await addSongToPlaylist(playlistId, song.songId);
             if (success) {
-              results.push(`✓ Đã thêm vào "${targetPlaylist.playlistName}"`);
+              results.push(`✓ Added to "${targetPlaylist.playlistName}"`);
             } else {
-              results.push(`✗ Không thể thêm vào "${targetPlaylist.playlistName}"`);
+              results.push(`✗ Failed to add to "${targetPlaylist.playlistName}"`);
             }
           } catch {
-            results.push(`✗ Lỗi khi thêm vào "${targetPlaylist.playlistName}"`);
+            results.push(`✗ Error adding to "${targetPlaylist.playlistName}"`);
           }
         }
       }
 
       // Show results
-      Alert.alert('Kết quả', results.join('\n'));
+      Alert.alert('Result', results.join('\n'));
       setAddModalVisible(false);
     } catch (error) {
       console.error('Error adding song:', error);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra khi thêm bài hát');
+      Alert.alert('Error', 'An error occurred while adding the song');
     } finally {
       setAdding(false);
     }
@@ -389,7 +389,7 @@ export default function SongDetails() {
         <View style={styles.modalOverlay}>
           <View style={styles.addModal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Thêm bài hát vào</Text>
+              <Text style={styles.modalTitle}>Add to</Text>
               <TouchableOpacity onPress={() => setAddModalVisible(false)}>
                 <Ionicons name="close" size={28} color="#000" />
               </TouchableOpacity>
@@ -410,7 +410,7 @@ export default function SongDetails() {
                     color={selectedOptions.addToFavorites ? "#1ce5ff" : "#999"} 
                   />
                   <Ionicons name="heart" size={20} color="#E53935" style={styles.optionIcon} />
-                  <Text style={styles.optionText}>Bài hát yêu thích</Text>
+                  <Text style={styles.optionText}>Favourites</Text>
                 </TouchableOpacity>
 
                 {/* Playlists */}
@@ -437,7 +437,7 @@ export default function SongDetails() {
                 )}
 
                 {playlists.length === 0 && !loadingPlaylists && (
-                  <Text style={styles.emptyText}>Chưa có playlist nào. Hãy tạo playlist mới!</Text>
+                  <Text style={styles.emptyText}>No playlists yet. Create a new one!</Text>
                 )}
               </ScrollView>
             )}
@@ -449,7 +449,7 @@ export default function SongDetails() {
                 onPress={() => setAddModalVisible(false)}
                 disabled={adding}
               >
-                <Text style={styles.cancelButtonText}>Hủy</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -460,7 +460,7 @@ export default function SongDetails() {
                 {adding ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Thêm</Text>
+                  <Text style={styles.confirmButtonText}>Add</Text>
                 )}
               </TouchableOpacity>
             </View>
