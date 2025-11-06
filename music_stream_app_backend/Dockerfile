@@ -1,17 +1,18 @@
 # ==== Build stage ====
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
+
 COPY pom.xml .
-RUN mvn -q -e -DskipTests dependency:go-offline
+RUN mvn -q -B -DskipTests dependency:go-offline --no-transfer-progress
+
 COPY src ./src
-RUN mvn -q -DskipTests package
+RUN mvn -q -B -DskipTests package --no-transfer-progress
 
 # ==== Runtime stage ====
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jre
 WORKDIR /app
-ENV JAVA_OPTS=""
-# MONGODB_URI sẽ được truyền từ env (docker run/compose)
-ENV MONGODB_URI="mongodb://localhost:27017/music_stream_app"
+
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
+
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
