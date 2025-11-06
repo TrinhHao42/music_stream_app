@@ -21,23 +21,13 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
   const router = useRouter();
 
   const handlePress = () => {
-    if (fromLibrary) {
-      // Navigate to library playlist details page
-      router.push({
-        pathname: '/library/playlist-details',
-        params: {
-          playlist: JSON.stringify(playlist),
-        },
-      } as never);
-    } else {
-      // Navigate to regular playlist details page
-      router.push({
-        pathname: '/library/playlist-details',
-        params: {
-          playlistId: playlist.playlistId,
-        },
-      });
-    }
+    // Always navigate with playlistId only
+    router.push({
+      pathname: '/playlist-details',
+      params: {
+        playlistId: playlist.playlistId,
+      },
+    } as never);
   };
 
   const handleRemove = () => {
@@ -72,7 +62,7 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
       </View>
       {showRemove ? (
         <TouchableOpacity onPress={handleRemove} style={styles.removeBtn}>
-          <Ionicons name="close-circle" size={24} color="#E53935" />
+          <Ionicons name="trash-outline" size={20} color="#E53935" />
         </TouchableOpacity>
       ) : (
         <Ionicons name="chevron-forward" size={20} color="#999" />

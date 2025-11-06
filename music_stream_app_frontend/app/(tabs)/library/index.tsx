@@ -1,10 +1,10 @@
 import {
   createPlaylist,
   getLibrary,
-  removeAlbumFromLibrary,
-  removeArtistFromLibrary,
+  removeFavouriteAlbum,
+  removeFavouriteArtist,
+  removeFavouriteSong,
   removePlaylistFromLibrary,
-  removeSongFromLibrary,
 } from '@/api/musicApi';
 import CartAlbumItem from '@/components/CartAlbumItem';
 import CartArtistItem from '@/components/CartArtistItem';
@@ -15,7 +15,7 @@ import { Album, Artist, Song } from '@/types';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -131,6 +131,15 @@ const LibraryScreen = () => {
     loadLibrary();
   }, [loadLibrary]);
 
+  // Auto refresh library khi màn hình được focus (quay lại từ màn hình khác)
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadLibrary();
+      }
+    }, [user, loadLibrary])
+  );
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadLibrary(true);
@@ -164,28 +173,66 @@ const LibraryScreen = () => {
     }
   };
 
-  // === Remove Handlers ===
-  const createRemoveHandler = useCallback(
-    (removeFn: (userId: string, id: string) => Promise<boolean>, successMsg: string) =>
-      async (id: string) => {
-        if (!user) return;
-        try {
-          const success = await removeFn(user.userId, id);
-          if (success) {
-            Alert.alert('Success', successMsg);
-            await loadLibrary(true);
-          }
-        } catch (error) {
-          Alert.alert('Error', `Failed to remove`);
-        }
-      },
-    [user, loadLibrary]
-  );
+  // === Remove Handlers === (API mới)
+  const handleRemoveSong = useCallback(async (songId: string) => {
+    if (!user) return;
+    try {
+      const success = await removeFavouriteSong(user.userId, songId);
+      if (success) {
+        Alert.alert('Thành công', 'Đã xóa bài hát khỏi danh sách yêu thích');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Lỗi', 'Không thể xóa bài hát');
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể xóa bài hát');
+    }
+  }, [user, loadLibrary]);
 
-  const handleRemoveSong = createRemoveHandler(removeSongFromLibrary, 'Song removed');
-  const handleRemoveAlbum = createRemoveHandler(removeAlbumFromLibrary, 'Album removed');
-  const handleRemoveArtist = createRemoveHandler(removeArtistFromLibrary, 'Artist unfollowed');
-  const handleRemovePlaylist = createRemoveHandler(removePlaylistFromLibrary, 'Playlist removed');
+  const handleRemoveAlbum = useCallback(async (albumId: string) => {
+    if (!user) return;
+    try {
+      const success = await removeFavouriteAlbum(user.userId, albumId);
+      if (success) {
+        Alert.alert('Thành công', 'Đã xóa album khỏi danh sách yêu thích');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Lỗi', 'Không thể xóa album');
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể xóa album');
+    }
+  }, [user, loadLibrary]);
+
+  const handleRemoveArtist = useCallback(async (artistId: string) => {
+    if (!user) return;
+    try {
+      const success = await removeFavouriteArtist(user.userId, artistId);
+      if (success) {
+        Alert.alert('Thành công', 'Đã bỏ theo dõi nghệ sĩ');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
+    }
+  }, [user, loadLibrary]);
+
+  const handleRemovePlaylist = useCallback(async (playlistId: string) => {
+    if (!user) return;
+    try {
+      const success = await removePlaylistFromLibrary(user.userId, playlistId);
+      if (success) {
+        Alert.alert('Thành công', 'Đã xóa playlist khỏi thư viện');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Lỗi', 'Không thể xóa playlist');
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể xóa playlist');
+    }
+  }, [user, loadLibrary]);
 
   // === Render Item Helpers ===
   const renderItemWithDelete = useCallback(

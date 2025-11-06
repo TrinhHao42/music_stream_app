@@ -1,15 +1,14 @@
-import { getAlbumById, getArtistsByIds, getCurrentUser, getPlaylistsByIds, getSongsByIds, updateUser } from "@/api/musicApi";
+import { getCurrentUser, getLibraryStats, renameUser } from "@/api/musicApi";
 import { useAuth } from "@/contexts/AuthContext";
-import { Artist, Song } from "@/types";
-import Album from "@/types/Album";
-import Playlist from "@/types/Playlist";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -32,25 +31,19 @@ const UserScreen = () => {
   const [user, setUser] = useState<{
     id: string;
     name: string;
-    playlists: number;
-    follows: number;
-    likes: number;
-    favouriteAlbums: number;
   } | null>(null);
 
-  const [favouriteAlbumsList, setFavouriteAlbumsList] = useState<Album[]>([]);
-  const [likedSongsList, setLikedSongsList] = useState<Song[]>([]);
-  const [playlistsList, setPlaylistsList] = useState<Playlist[]>([]);
-  const [followingArtistsList, setFollowingArtistsList] = useState<Artist[]>([]);
-  
-  const [loadingAlbums, setLoadingAlbums] = useState(false);
-  const [loadingSongs, setLoadingSongs] = useState(false);
-  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
-  const [loadingArtists, setLoadingArtists] = useState(false);
+  const [libraryStats, setLibraryStats] = useState({
+    songs: 0,
+    albums: 0,
+    playlists: 0,
+    artists: 0,
+  });
   
   const [refreshing, setRefreshing] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [nameInput, setNameInput] = useState("");
 
@@ -61,109 +54,40 @@ const UserScreen = () => {
       const parsedUser = {
         id: authUser.userId,
         name: authUser.userName,
-        playlists: authUser.playlists?.length ?? 0,
-        follows: authUser.followList?.length ?? 0,
-        likes: authUser.likeList?.length ?? 0,
-        favouriteAlbums: authUser.favouriteAlbums?.length ?? 0,
       };
       
       setUser(parsedUser);
       setNameInput(parsedUser.name);
 
-      // Load tất cả danh sách
-      loadFavouriteAlbums(authUser.favouriteAlbums || []);
-      loadLikedSongs(authUser.likeList || []);
-      loadPlaylists(authUser.playlists || []);
-      loadFollowingArtists(authUser.followList || []);
+      // Load library stats
+      loadLibraryStats(authUser.userId);
     }
-     
   }, [authUser]);
 
-  // Hàm load danh sách albums yêu thích
-  const loadFavouriteAlbums = async (albumIds: string[]) => {
-    if (!albumIds || albumIds.length === 0) {
-      setFavouriteAlbumsList([]);
-      return;
-    }
+  // Auto refresh stats khi màn hình được focus
+  useFocusEffect(
+    useCallback(() => {
+      if (authUser) {
+        loadLibraryStats(authUser.userId);
+      }
+    }, [authUser])
+  );
 
+  // Hàm load library stats
+  const loadLibraryStats = async (userId: string) => {
     try {
-      setLoadingAlbums(true);
-      const albumPromises = albumIds.map((id) => getAlbumById(id));
-      const albums = await Promise.all(albumPromises);
-      const validAlbums = albums.filter(
-        (album): album is Album => album !== null
-      );
-      setFavouriteAlbumsList(validAlbums);
-
-      // Lọc bỏ albums không tồn tại (404) - chỉ hiển thị albums hợp lệ
-      if (validAlbums.length < albumIds.length) {
-        const invalidCount = albumIds.length - validAlbums.length;
-        console.log(`Bỏ qua ${invalidCount} album không tồn tại`);
+      const stats = await getLibraryStats(userId);
+      if (stats) {
+        setLibraryStats(stats);
       }
     } catch (error) {
-      console.error("Lỗi khi load albums yêu thích:", error);
-    } finally {
-      setLoadingAlbums(false);
-    }
-  };
-
-  // Hàm load danh sách bài hát đã thích
-  const loadLikedSongs = async (songIds: string[]) => {
-    if (!songIds || songIds.length === 0) {
-      setLikedSongsList([]);
-      return;
-    }
-
-    try {
-      setLoadingSongs(true);
-      const songs = await getSongsByIds(songIds);
-      setLikedSongsList(songs);
-    } catch (error) {
-      console.error("Lỗi khi load bài hát đã thích:", error);
-    } finally {
-      setLoadingSongs(false);
-    }
-  };
-
-  // Hàm load danh sách playlists
-  const loadPlaylists = async (playlistIds: string[]) => {
-    if (!playlistIds || playlistIds.length === 0) {
-      setPlaylistsList([]);
-      return;
-    }
-
-    try {
-      setLoadingPlaylists(true);
-      const playlists = await getPlaylistsByIds(playlistIds);
-      setPlaylistsList(playlists);
-    } catch (error) {
-      console.error("Lỗi khi load playlists:", error);
-    } finally {
-      setLoadingPlaylists(false);
-    }
-  };
-
-  // Hàm load danh sách nghệ sĩ đang theo dõi
-  const loadFollowingArtists = async (artistIds: string[]) => {
-    if (!artistIds || artistIds.length === 0) {
-      setFollowingArtistsList([]);
-      return;
-    }
-
-    try {
-      setLoadingArtists(true);
-      const artists = await getArtistsByIds(artistIds);
-      setFollowingArtistsList(artists);
-    } catch (error) {
-      console.error("Lỗi khi load nghệ sĩ đang theo dõi:", error);
-    } finally {
-      setLoadingArtists(false);
+      console.error("Lỗi khi load library stats:", error);
     }
   };
 
   // Hàm refresh để load lại dữ liệu mới từ API
   const handleRefresh = async () => {
-    if (!accessToken) return;
+    if (!accessToken || !authUser) return;
 
     try {
       setRefreshing(true);
@@ -176,22 +100,13 @@ const UserScreen = () => {
         const parsedUser = {
           id: userData.userId,
           name: userData.userName,
-          playlists: userData.playlists?.length ?? 0,
-          follows: userData.followList?.length ?? 0,
-          likes: userData.likeList?.length ?? 0,
-          favouriteAlbums: userData.favouriteAlbums?.length ?? 0,
         };
 
         setUser(parsedUser);
         setNameInput(parsedUser.name);
 
-        // Load lại tất cả danh sách
-        await Promise.all([
-          loadFavouriteAlbums(userData.favouriteAlbums || []),
-          loadLikedSongs(userData.likeList || []),
-          loadPlaylists(userData.playlists || []),
-          loadFollowingArtists(userData.followList || []),
-        ]);
+        // Refresh library stats
+        await loadLibraryStats(userData.userId);
       }
     } catch (error) {
       console.error("Lỗi khi refresh user:", error);
@@ -202,7 +117,7 @@ const UserScreen = () => {
 
   // Hàm lưu thông tin user lên server
   const handleSaveUser = async () => {
-    if (!user || !nameInput.trim() || !authUser) {
+    if (!user || !nameInput.trim()) {
       Alert.alert("Lỗi", "Tên không được để trống");
       return;
     }
@@ -210,17 +125,8 @@ const UserScreen = () => {
     try {
       setSaving(true);
 
-      // Tạo user object mới với tất cả thông tin cũ + userName mới
-      const updatedUserData = {
-        userName: nameInput.trim(),
-        playlists: authUser.playlists,
-        followList: authUser.followList,
-        likeList: authUser.likeList,
-        favouriteAlbums: authUser.favouriteAlbums,
-      };
-
-      // Gọi API cập nhật user
-      const updatedUser = await updateUser(user.id, updatedUserData);
+      // Gọi API rename user với userId và tên mới
+      const updatedUser = await renameUser(user.id, nameInput.trim());
 
       if (updatedUser) {
         // Cập nhật state local
@@ -233,13 +139,13 @@ const UserScreen = () => {
         await refreshUserData();
 
         setShowEditor(false);
-        Alert.alert("Thành công", "Đã cập nhật thông tin");
+        Alert.alert("Thành công", "Đã cập nhật tên thành công");
       } else {
-        Alert.alert("Lỗi", "Không thể cập nhật thông tin");
+        Alert.alert("Lỗi", "Không thể cập nhật tên");
       }
     } catch (error) {
-      console.error("Lỗi khi lưu user:", error);
-      Alert.alert("Lỗi", "Không thể cập nhật thông tin");
+      console.error("Lỗi khi đổi tên user:", error);
+      Alert.alert("Lỗi", "Không thể cập nhật tên");
     } finally {
       setSaving(false);
     }
@@ -256,14 +162,29 @@ const UserScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
+              setLoggingOut(true);
+              
               // Call logout from AuthContext to clear all data
               await logout();
+              
               // Navigate to launch screen
               router.replace('/launch' as any);
             } catch (error) {
               console.error('Error during logout:', error);
-              // Still navigate even if logout API fails
-              router.replace('/launch' as any);
+              
+              // Show error but still navigate to clear local state
+              Alert.alert(
+                'Thông báo',
+                'Đã có lỗi xảy ra nhưng bạn đã được đăng xuất khỏi thiết bị này.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => router.replace('/launch' as any)
+                  }
+                ]
+              );
+            } finally {
+              setLoggingOut(false);
             }
           },
         },
@@ -271,12 +192,15 @@ const UserScreen = () => {
     );
   };
 
-  const Stat = ({ num, label }: { num: number | string; label: string }) => (
-    <View style={styles.statBox}>
-      <Text style={styles.statNum}>{num}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
+  // Component Stat - hiện tại không sử dụng (Stats Cards đã được comment)
+  // const Stat = ({ num, label, gradient }: { num: number | string; label: string; gradient: [string, string] }) => (
+  //   <View style={styles.statCard}>
+  //     <LinearGradient colors={gradient} style={styles.statGradient}>
+  //       <Text style={styles.statNum}>{num}</Text>
+  //       <Text style={styles.statLabel}>{label}</Text>
+  //     </LinearGradient>
+  //   </View>
+  // );
 
   // Hiển thị loading khi đang kiểm tra auth
   if (authLoading) {
@@ -330,86 +254,91 @@ const UserScreen = () => {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          colors={["#11181C"]}
-          tintColor="#11181C"
+          colors={["#667EEA"]}
+          tintColor="#667EEA"
         />
       }
     >
-      {/* Header avatar + tên */}
-      <View style={styles.header}>
-        <Image
-          source={require("@/assets/images/logo/avatar.png")}
-          style={styles.avatar}
-          contentFit="cover"
-          transition={0}
-          cachePolicy="memory-disk"
-        />
-        <View style={styles.nameRow}>
-          <Text 
-            style={styles.name}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {user.name}
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.editIconBtn}
-            onPress={() => setShowEditor((s) => !s)}
-          >
-            <Ionicons name="pencil" size={20} color="#11181C" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Logout Button */}
-      <TouchableOpacity
-        activeOpacity={0.7}
-        style={styles.logoutBtn}
-        onPress={handleLogout}
+      {/* Header với gradient background */}
+      <LinearGradient
+        colors={['#667EEA', '#764BA2']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={require("@/assets/images/logo/Frame1.png")}
+              style={styles.avatar}
+              contentFit="cover"
+              transition={0}
+              cachePolicy="memory-disk"
+            />
+            
+          </View>
+          
+          <View style={styles.nameRow}>
+            <Text 
+              style={styles.name}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {user.name}
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.editIconBtn}
+              onPress={() => setShowEditor((s) => !s)}
+            >
+              <Ionicons name="pencil" size={18} color="#667EEA" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <Stat num={user.playlists} label="PLAYLISTS" />
-        <Stat num={user.follows} label="FOLLOWING" />
-      </View>
+      {/* Stats Cards với gradient */}
+      {/* <View style={styles.statsContainer}>
+        <Stat 
+          num={user.playlists} 
+          label="Playlists" 
+          gradient={['#FF6B6B', '#FF8E53']}
+        />
+        <Stat 
+          num={user.follows} 
+          label="Nghệ sĩ" 
+          gradient={['#4FACFE', '#00F2FE']}
+        />
+        <Stat 
+          num={user.likes} 
+          label="Bài hát" 
+          gradient={['#43E97B', '#38F9D7']}
+        />
+      </View> */}
 
       {/* Editor (toggle khi bấm icon edit) */}
       {showEditor && (
-        <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>Chỉnh sửa tên</Text>
+        <View style={styles.editCard}>
+          <View style={styles.editHeader}>
+            <Ionicons name="create-outline" size={24} color="#667EEA" />
+            <Text style={styles.editTitle}>Chỉnh sửa tên</Text>
+          </View>
+          
           <View style={styles.formRow}>
-            <Text style={styles.formLabel}>Tên</Text>
+            <Text style={styles.formLabel}>Tên hiển thị</Text>
             <TextInput
               value={nameInput}
               onChangeText={setNameInput}
               style={styles.formInput}
-              placeholder="Tên người dùng"
+              placeholder="Nhập tên mới"
+              placeholderTextColor="#9CA3AF"
             />
           </View>
+          
           <View style={styles.formActions}>
             <TouchableOpacity
               activeOpacity={0.7}
-              style={[
-                styles.saveBtn,
-                { backgroundColor: "#11181C", opacity: saving ? 0.6 : 1 },
-              ]}
-              onPress={handleSaveUser}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.saveText}>Lưu</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[styles.saveBtn, { backgroundColor: "#E6E8EB" }]}
+              style={[styles.cancelBtn]}
               onPress={() => {
                 if (user) {
                   setNameInput(user.name);
@@ -418,353 +347,439 @@ const UserScreen = () => {
               }}
               disabled={saving}
             >
-              <Text style={[styles.saveText, { color: "#11181C" }]}>Hủy</Text>
+              <Text style={styles.cancelText}>Hủy</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleSaveUser}
+              disabled={saving}
+            >
+              <LinearGradient
+                colors={['#667EEA', '#764BA2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                    <Text style={styles.saveText}>Lưu</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* Favourite Albums section */}
-      <Text style={styles.sectionTitle}>Albums yêu thích</Text>
+      {/* My Library Button */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.libraryBtn}
+        onPress={() => router.push('/(tabs)/library' as any)}
+      >
+        <View style={styles.libraryIconBg}>
+          <Ionicons name="library" size={24} color="#667EEA" />
+        </View>
+        <Text style={styles.libraryText}>Thư viện của tôi</Text>
+        <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+      </TouchableOpacity>
 
-      {loadingAlbums ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#11181C" />
-          <Text style={styles.loadingText}>Đang tải albums...</Text>
+      {/* Quick Stats Info */}
+      <View style={styles.infoCard}>
+        <Text style={styles.infoCardTitle}>Thống kê chi tiết</Text>
+        
+        <View style={styles.infoRow}>
+          <View style={[styles.infoIconBg, { backgroundColor: '#FFF4E6' }]}>
+            <Ionicons name="disc" size={22} color="#FF8E53" />
+          </View>
+          <Text style={styles.infoLabel}>Albums yêu thích</Text>
+          <Text style={styles.infoValue}>{libraryStats.albums}</Text>
         </View>
-      ) : favouriteAlbumsList.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="disc-outline" size={48} color="#E6E8EB" />
-          <Text style={styles.emptyText}>Chưa có album yêu thích</Text>
+        
+        <View style={styles.infoRow}>
+          <View style={[styles.infoIconBg, { backgroundColor: '#FFE6F0' }]}>
+            <Ionicons name="heart" size={22} color="#FF6B6B" />
+          </View>
+          <Text style={styles.infoLabel}>Bài hát đã thích</Text>
+          <Text style={styles.infoValue}>{libraryStats.songs}</Text>
         </View>
-      ) : (
-        <View style={styles.list}>
-          {favouriteAlbumsList.map((album) => (
-            <TouchableOpacity
-              key={album.albumId}
-              activeOpacity={0.7}
-              style={styles.listItem}
-              onPress={() =>
-                router.push({
-                  pathname: "/album-details" as any,
-                  params: { album: JSON.stringify(album) },
-                })
-              }
-            >
-              <Image
-                source={{ uri: album.image }}
-                style={styles.cover}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="memory-disk"
-                placeholder={require("@/assets/images/My Library/Image 101.png")}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle}>{album.albumName}</Text>
-                <Text style={styles.itemSub}>
-                  {album.favourites} lượt thích
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9BA1A6" />
-            </TouchableOpacity>
-          ))}
+        
+        <View style={styles.infoRow}>
+          <View style={[styles.infoIconBg, { backgroundColor: '#E6F7FF' }]}>
+            <Ionicons name="musical-notes" size={22} color="#4FACFE" />
+          </View>
+          <Text style={styles.infoLabel}>Playlists</Text>
+          <Text style={styles.infoValue}>{libraryStats.playlists}</Text>
         </View>
-      )}
+        
+        <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+          <View style={[styles.infoIconBg, { backgroundColor: '#F0E6FF' }]}>
+            <Ionicons name="person" size={22} color="#764BA2" />
+          </View>
+          <Text style={styles.infoLabel}>Nghệ sĩ theo dõi</Text>
+          <Text style={styles.infoValue}>{libraryStats.artists}</Text>
+        </View>
+      </View>
 
-      {/* Playlists section */}
-      <Text style={styles.sectionTitle}>Playlists của tôi</Text>
+      {/* Logout Button */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={handleLogout}
+        disabled={loggingOut}
+      >
+        <LinearGradient
+          colors={['#FF6B6B', '#EE5A6F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.logoutBtn, loggingOut && { opacity: 0.6 }]}
+        >
+          {loggingOut ? (
+            <>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={styles.logoutText}>Đang đăng xuất...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="log-out" size={22} color="#FFFFFF" />
+              <Text style={styles.logoutText}>Đăng xuất</Text>
+            </>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
 
-      {loadingPlaylists ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#11181C" />
-          <Text style={styles.loadingText}>Đang tải playlists...</Text>
-        </View>
-      ) : playlistsList.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="musical-notes-outline" size={48} color="#E6E8EB" />
-          <Text style={styles.emptyText}>Chưa có playlist nào</Text>
-        </View>
-      ) : (
-        <View style={styles.list}>
-          {playlistsList.map((playlist) => (
-            <TouchableOpacity
-              key={playlist.playlistId}
-              activeOpacity={0.7}
-              style={styles.listItem}
-              onPress={() =>
-                router.push({
-                  pathname: "/playlist-details" as any,
-                  params: {
-                    playlistId: playlist.playlistId,
-                    title: playlist.playlistName,
-                  },
-                })
-              }
-            >
-              <Image
-                source={
-                  playlist.image
-                    ? { uri: playlist.image }
-                    : require("@/assets/images/My Library/Image 101.png")
-                }
-                style={styles.cover}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="memory-disk"
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle} numberOfLines={1}>
-                  {playlist.playlistName}
-                </Text>
-                <Text style={styles.itemSub}>
-                  {playlist.songs?.length ?? 0} bài hát
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9BA1A6" />
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* Liked Songs section */}
-      <Text style={styles.sectionTitle}>Bài hát đã thích</Text>
-
-      {loadingSongs ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#11181C" />
-          <Text style={styles.loadingText}>Đang tải bài hát...</Text>
-        </View>
-      ) : likedSongsList.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="heart-outline" size={48} color="#E6E8EB" />
-          <Text style={styles.emptyText}>Chưa có bài hát yêu thích</Text>
-        </View>
-      ) : (
-        <View style={styles.list}>
-          {likedSongsList.map((song) => (
-            <TouchableOpacity
-              key={song.songId}
-              activeOpacity={0.7}
-              style={styles.listItem}
-              onPress={() =>
-                router.push({
-                  pathname: "/play-audio" as any,
-                  params: { song: JSON.stringify(song) },
-                })
-              }
-            >
-              <Image
-                source={
-                  song.coverUrl
-                    ? { uri: song.coverUrl }
-                    : require("@/assets/images/Home - Audio Listing/Image 36.png")
-                }
-                style={styles.cover}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="memory-disk"
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle} numberOfLines={1}>
-                  {song.title}
-                </Text>
-                <Text style={styles.itemSub} numberOfLines={1}>
-                  {song.artist?.[0] ?? "Unknown"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9BA1A6" />
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* Following Artists section */}
-      <Text style={styles.sectionTitle}>Nghệ sĩ đang theo dõi</Text>
-
-      {loadingArtists ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#11181C" />
-          <Text style={styles.loadingText}>Đang tải nghệ sĩ...</Text>
-        </View>
-      ) : followingArtistsList.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="person-outline" size={48} color="#E6E8EB" />
-          <Text style={styles.emptyText}>Chưa theo dõi nghệ sĩ nào</Text>
-        </View>
-      ) : (
-        <View style={styles.list}>
-          {followingArtistsList.map((artist) => (
-            <TouchableOpacity
-              key={artist.artistId}
-              activeOpacity={0.7}
-              style={styles.listItem}
-              onPress={() =>
-                router.push({
-                  pathname: "/artist-profile" as any,
-                  params: { artist: JSON.stringify(artist) },
-                })
-              }
-            >
-              <Image
-                source={
-                  artist.artistImage
-                    ? { uri: artist.artistImage }
-                    : require("@/assets/images/Artist Profile/Image 63.png")
-                }
-                style={[styles.cover, { borderRadius: 24 }]}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="memory-disk"
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle} numberOfLines={1}>
-                  {artist.artistName}
-                </Text>
-                <Text style={styles.itemSub}>
-                  {artist.followers ?? 0} người theo dõi
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9BA1A6" />
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      <View style={{ height: 24 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
-  content: { padding: 16 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#F9FAFB" 
+  },
+  content: { 
+    paddingBottom: 20 
+  },
 
-  header: { alignItems: "center", marginBottom: 12 },
-  avatar: { width: 100, height: 100, borderRadius: 50, marginTop: 8 },
+  // Header với gradient
+  headerGradient: {
+    paddingTop: 40,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  header: { 
+    alignItems: "center",
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: { 
+    width: 110, 
+    height: 110, 
+    
+  },
+  avatarBorder: {
+    position: 'absolute',
+    top: -5,
+    left: -5,
+    right: -5,
+    bottom: -5,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
-    gap: 8,
-    maxWidth: "80%",
+    gap: 10,
+    maxWidth: "85%",
   },
   name: {
-    fontSize: 18,
-    color: "#11181C",
+    fontSize: 24,
+    color: "#FFFFFF",
     fontWeight: "700",
-    flex: 1,
+    textAlign: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   editIconBtn: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+
+  // Stats Cards
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    marginTop: -35,
+    marginBottom: 20,
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  statGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderRadius: 16,
-    backgroundColor: "#F3F4F5",
+    alignItems: "center",
+  },
+  statNum: { 
+    color: "#FFFFFF", 
+    fontSize: 22, 
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  statLabel: { 
+    color: "#FFFFFF", 
+    fontSize: 11, 
+    fontWeight: "600",
+    textTransform: "uppercase",
+    opacity: 0.9,
+  },
+
+  // Edit Card
+  editCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  editHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+  },
+  editTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  formRow: { 
+    marginBottom: 16 
+  },
+  formLabel: { 
+    color: "#6B7280", 
+    fontSize: 14, 
+    fontWeight: "600",
+    marginBottom: 8 
+  },
+  formInput: {
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: "#1F2937",
+    fontSize: 16,
+    backgroundColor: "#F9FAFB",
+  },
+  formActions: { 
+    flexDirection: "row", 
+    gap: 12, 
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+  },
+  cancelText: { 
+    color: "#6B7280", 
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  saveBtn: {
+    flex: 1,
+    flexDirection: "row",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  saveText: { 
+    color: "#FFFFFF", 
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
+  // Library Button
+  libraryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    gap: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  libraryIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#EEF2FF",
     justifyContent: "center",
     alignItems: "center",
   },
+  libraryText: {
+    flex: 1,
+    color: "#1F2937",
+    fontSize: 17,
+    fontWeight: "700",
+  },
 
+  // Info Card
+  infoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  infoCardTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  infoIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoLabel: {
+    flex: 1,
+    color: "#4B5563",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  infoValue: {
+    color: "#1F2937",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  // Logout Button
   logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E53935",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 16,
-    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    gap: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#FF6B6B",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   logoutText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  statBox: { alignItems: "center" },
-  statNum: { color: "#11181C", fontSize: 16, fontWeight: "700" },
-  statLabel: { color: "#687076", fontSize: 12, marginTop: 2 },
-
-  infoCard: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E6E8EB",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-
-  formRow: { marginBottom: 10 },
-  formLabel: { color: "#687076", fontSize: 13, marginBottom: 6 },
-  formInput: {
-    borderWidth: 1,
-    borderColor: "#E6E8EB",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    color: "#11181C",
-  },
-  formActions: { flexDirection: "row", gap: 10, marginTop: 6, marginBottom: 6 },
-  saveBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  saveText: { color: "#FFFFFF", fontWeight: "700" },
-
-  sectionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#11181C",
-    marginBottom: 10,
-    marginTop: 8,
   },
-
-  loadingContainer: {
-    padding: 24,
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E6E8EB",
-    borderRadius: 12,
-  },
-  loadingText: { marginTop: 8, color: "#687076", fontSize: 14 },
-
-  emptyContainer: {
-    padding: 32,
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E6E8EB",
-    borderRadius: 12,
-  },
-  emptyText: { marginTop: 12, color: "#687076", fontSize: 14 },
-
-  list: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E6E8EB",
-    borderRadius: 12,
-    paddingVertical: 4,
-  },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E6E8EB",
-  },
-  cover: { width: 48, height: 48, borderRadius: 8, marginRight: 12 },
-  itemTitle: { color: "#11181C", fontSize: 15, fontWeight: "600" },
-  itemSub: { color: "#687076", fontSize: 12, marginTop: 2 },
 });
 
 export default UserScreen;

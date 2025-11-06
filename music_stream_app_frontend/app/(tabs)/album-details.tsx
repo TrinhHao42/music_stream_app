@@ -1,15 +1,16 @@
-import { addAlbumToLibrary, addFavouriteAlbum, addSongToLibrary, addSongToPlaylist, getSongByName, getUserPlaylists, removeAlbumFromLibrary, removeFavouriteAlbum } from '@/api/musicApi';
+import { addAlbumToLibrary, addSongToLibrary, addSongToPlaylist, getLibrary, getSongByName, getUserPlaylists, removeAlbumFromLibrary } from '@/api/musicApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,11 +24,10 @@ const AlbumDetailsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ album: string }>();
   const { user, refreshUserData } = useAuth();
-  const [isSaved, setIsSaved] = useState(false);
-  const [loadingSave, setLoadingSave] = useState(false);
   const [inLibrary, setInLibrary] = useState(false);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   // States for menu and playlist modal
   const [menuVisible, setMenuVisible] = useState(false);
@@ -49,13 +49,30 @@ const AlbumDetailsScreen = () => {
     }
   }
 
-  // Kiểm tra album có trong danh sách yêu thích không
-  useEffect(() => {
-    if (album && user && user.favouriteAlbums) {
-      setIsSaved(user.favouriteAlbums.includes(album.albumId));
+  // Kiểm tra xem album đã có trong thư viện chưa
+  const checkAlbumInLibrary = useCallback(async () => {
+    if (!user || !album) return;
+    
+    try {
+      const library = await getLibrary(user.userId);
+      if (library && library.favouriteAlbums) {
+        const isInLibrary = library.favouriteAlbums.some(
+          (favAlbum) => favAlbum.albumId === album.albumId
+        );
+        setInLibrary(isInLibrary);
+      } else {
+        setInLibrary(false);
+      }
+    } catch (error) {
+      console.error('Error checking album in library:', error);
+      setInLibrary(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, album?.albumId]);
+  }, [user, album]);
+
+  // Check album status khi component mount hoặc user thay đổi
+  useEffect(() => {
+    checkAlbumInLibrary();
+  }, [checkAlbumInLibrary]);
 
   // Early returns sau hooks
   if (!params.album) {
@@ -107,71 +124,9 @@ const AlbumDetailsScreen = () => {
     }
   };
 
-  const handleToggleSave = async () => {
-    if (!user) {
-      Alert.alert(
-        'Yêu cầu đăng nhập',
-        'Bạn cần đăng nhập để lưu album vào danh sách yêu thích',
-        [
-          {
-            text: 'Hủy',
-            style: 'cancel',
-          },
-          {
-            text: 'Đăng nhập',
-            onPress: () => router.push('/launch' as any),
-          },
-        ]
-      );
-      return;
-    }
-
-    // Optimistic update - Cập nhật UI ngay lập tức
-    const previousState = isSaved;
-    setIsSaved(!isSaved);
-    setLoadingSave(true);
-
-    try {
-      let success = false;
-      
-      if (previousState) {
-        // Xóa khỏi yêu thích
-        const updatedUser = await removeFavouriteAlbum(user, album);
-        success = updatedUser !== null;
-        
-        if (success) {
-          // Refresh user data ở background
-          refreshUserData().catch(console.error);
-        }
-      } else {
-        // Thêm vào yêu thích
-        const updatedUser = await addFavouriteAlbum(user, album);
-        success = updatedUser !== null;
-        
-        if (success) {
-          // Refresh user data ở background
-          refreshUserData().catch(console.error);
-        }
-      }
-
-      if (!success) {
-        // Rollback UI nếu thất bại
-        setIsSaved(previousState);
-        Alert.alert('Lỗi', 'Không thể cập nhật. Vui lòng thử lại');
-      }
-    } catch (error) {
-      console.error('Error toggling save:', error);
-      // Rollback UI nếu có exception
-      setIsSaved(previousState);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
-    } finally {
-      setLoadingSave(false);
-    }
-  };
-
   const handleToggleLibrary = async () => {
     if (!user) {
-      Alert.alert('Error', 'Please login to add album to library');
+      Alert.alert('Yêu cầu đăng nhập', 'Bạn cần đăng nhập để thêm album vào thư viện');
       return;
     }
 
@@ -192,16 +147,40 @@ const AlbumDetailsScreen = () => {
 
       if (!success) {
         setInLibrary(previousState);
-        Alert.alert('Error', 'Failed to update library');
+        Alert.alert('Lỗi', 'Không thể cập nhật thư viện');
       } else {
-        Alert.alert('Success', previousState ? 'Album removed from library' : 'Album added to library');
+        Alert.alert(
+          'Thành công', 
+          previousState ? 'Đã xóa album khỏi thư viện' : 'Đã thêm album vào thư viện'
+        );
+        
+        // Refresh user data và kiểm tra lại trạng thái album
+        await refreshUserData();
+        await checkAlbumInLibrary();
       }
     } catch (error) {
       console.error('Error toggling library:', error);
       setInLibrary(previousState);
-      Alert.alert('Error', 'Something went wrong');
+      Alert.alert('Lỗi', 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setLoadingLibrary(false);
+    }
+  };
+
+  // Hàm refresh để load lại dữ liệu
+  const handleRefresh = async () => {
+    if (!user || !album) return;
+
+    setRefreshing(true);
+    try {
+      // Refresh user data để cập nhật các state
+      await refreshUserData();
+      // Kiểm tra lại trạng thái album trong library
+      await checkAlbumInLibrary();
+    } catch (error) {
+      console.error('Error refreshing album details:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -276,7 +255,17 @@ const AlbumDetailsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#667EEA']}
+            tintColor="#667EEA"
+          />
+        }
+      >
         {/* Album Info */}
         <View style={styles.albumInfo}>
           <Image 
@@ -296,24 +285,6 @@ const AlbumDetailsScreen = () => {
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            {/* Save to Favourites Button */}
-            <TouchableOpacity 
-              style={isSaved ? styles.savedButton : styles.saveButton}
-              onPress={handleToggleSave}
-              disabled={loadingSave}
-            >
-              {loadingSave ? (
-                <ActivityIndicator size="small" color={isSaved ? "#fff" : "#000"} />
-              ) : (
-                <>
-                  <Ionicons name={isSaved ? "heart" : "heart-outline"} size={18} color={isSaved ? "#fff" : "#000"} />
-                  <Text style={isSaved ? styles.savedText : styles.saveText}>
-                    {isSaved ? 'Liked' : 'Like'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
             {/* Add to Library Button */}
             <TouchableOpacity 
               style={inLibrary ? styles.libraryActiveButton : styles.libraryButton}
@@ -324,9 +295,9 @@ const AlbumDetailsScreen = () => {
                 <ActivityIndicator size="small" color={inLibrary ? "#fff" : "#000"} />
               ) : (
                 <>
-                  <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={18} color={inLibrary ? "#fff" : "#000"} />
+                  <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={20} color={inLibrary ? "#fff" : "#000"} />
                   <Text style={inLibrary ? styles.libraryActiveText : styles.libraryText}>
-                    {inLibrary ? 'In Library' : 'Library'}
+                    {inLibrary ? 'Trong thư viện' : 'Thêm vào thư viện'}
                   </Text>
                 </>
               )}
@@ -403,7 +374,7 @@ const AlbumDetailsScreen = () => {
               onPress={handleAddToLibrary}
             >
               <Ionicons name="heart-outline" size={24} color="#000" />
-              <Text style={styles.menuText}>Add to Library</Text>
+              <Text style={styles.menuText}>Remove from Library</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.menuItem}

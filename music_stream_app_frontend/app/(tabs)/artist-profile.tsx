@@ -1,4 +1,4 @@
-import { addArtistToLibrary, addFavouriteArtist, addSongToLibrary, addSongToPlaylist, getAlbumByName, getSongByName, getUserPlaylists, removeArtistFromLibrary, removeFavouriteArtist } from '@/api/musicApi';
+import { addArtistToLibrary, addSongToLibrary, addSongToPlaylist, getAlbumByName, getLibrary, getSongByName, getUserPlaylists, removeArtistFromLibrary } from '@/api/musicApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Playlist, Song } from '@/types';
 import Artist from '@/types/Artist';
@@ -6,18 +6,16 @@ import formatCompactNumber from '@/utils/FormatCompactNumber';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ArtistProfile() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user, setUser } = useAuth();
-  const [isFollowing, setIsFollowing] = useState(false);
+  const { user, refreshUserData } = useAuth();
   const [inLibrary, setInLibrary] = useState(false);
   const [loadingSongTitle, setLoadingSongTitle] = useState<string | null>(null);
   const [loadingAlbumName, setLoadingAlbumName] = useState<string | null>(null);
-  const [loadingFollow, setLoadingFollow] = useState(false);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   
   // States for menu and playlist modal
@@ -27,7 +25,44 @@ export default function ArtistProfile() {
   const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
 
-  // Parse artist from params
+  // Parse artist from params - xử lý trước để có artist object
+  let artist: Artist | null = null;
+  let parseError = false;
+
+  if (params.artist) {
+    try {
+      artist = JSON.parse(params.artist as string);
+    } catch (error) {
+      console.error('Error parsing artist:', error);
+      parseError = true;
+    }
+  }
+
+  // Kiểm tra xem artist có trong library chưa
+  useEffect(() => {
+    const checkArtistInLibrary = async () => {
+      if (!user || !artist) return;
+      
+      try {
+        const library = await getLibrary(user.userId);
+        if (library && library.favouriteArtists) {
+          const isInLibrary = library.favouriteArtists.some(
+            (favArtist) => favArtist.artistId === artist.artistId
+          );
+          setInLibrary(isInLibrary);
+        } else {
+          setInLibrary(false);
+        }
+      } catch (error) {
+        console.error('Error checking artist in library:', error);
+        setInLibrary(false);
+      }
+    };
+
+    checkArtistInLibrary();
+  }, [user, artist]);
+
+  // Early returns sau hooks
   if (!params.artist) {
     return (
       <View style={styles.container}>
@@ -43,11 +78,7 @@ export default function ArtistProfile() {
     );
   }
 
-  let artist: Artist;
-  try {
-    artist = JSON.parse(params.artist as string);
-  } catch (error) {
-    console.error('Error parsing artist:', error);
+  if (parseError || !artist) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -62,54 +93,9 @@ export default function ArtistProfile() {
     );
   }
 
-  // Handle Follow/Unfollow (thêm vào followList)
-  const handleToggleFollow = async () => {
-    if (!user) {
-      Alert.alert(
-        'Yêu cầu đăng nhập',
-        'Bạn cần đăng nhập để theo dõi nghệ sĩ',
-        [
-          { text: 'Hủy', style: 'cancel' },
-          { text: 'Đăng nhập', onPress: () => router.push('/launch' as any) },
-        ]
-      );
-      return;
-    }
-
-    setLoadingFollow(true);
-    try {
-      if (isFollowing) {
-        // Unfollow - xóa khỏi followList
-        const updatedUser = await removeFavouriteArtist(user, artist);
-        if (updatedUser) {
-          setUser(updatedUser);
-          setIsFollowing(false);
-          Alert.alert('Thành công', 'Đã bỏ theo dõi nghệ sĩ');
-        } else {
-          Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
-        }
-      } else {
-        // Follow - thêm vào followList
-        const updatedUser = await addFavouriteArtist(user, artist);
-        if (updatedUser) {
-          setUser(updatedUser);
-          setIsFollowing(true);
-          Alert.alert('Thành công', 'Đã theo dõi nghệ sĩ');
-        } else {
-          Alert.alert('Lỗi', 'Không thể theo dõi nghệ sĩ');
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling follow:', error);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra');
-    } finally {
-      setLoadingFollow(false);
-    }
-  };
-
-  // Handle Add/Remove from Library
+  // Handle Add/Remove from Library (Follow/Unfollow)
   const handleToggleLibrary = async () => {
-    if (!user) {
+    if (!user || !artist) {
       Alert.alert(
         'Yêu cầu đăng nhập',
         'Bạn cần đăng nhập để thêm nghệ sĩ vào thư viện',
@@ -121,29 +107,33 @@ export default function ArtistProfile() {
       return;
     }
 
+    const previousState = inLibrary;
+    setInLibrary(!inLibrary);
     setLoadingLibrary(true);
+
     try {
-      if (inLibrary) {
+      let success = false;
+      
+      if (previousState) {
         // Remove from library
-        const success = await removeArtistFromLibrary(user.userId, artist.artistId);
-        if (success) {
-          setInLibrary(false);
-          Alert.alert('Thành công', 'Đã xóa nghệ sĩ khỏi thư viện');
-        } else {
-          Alert.alert('Lỗi', 'Không thể xóa nghệ sĩ khỏi thư viện');
-        }
+        success = await removeArtistFromLibrary(user.userId, artist.artistId);
       } else {
         // Add to library
-        const success = await addArtistToLibrary(user.userId, artist.artistId);
-        if (success) {
-          setInLibrary(true);
-          Alert.alert('Thành công', 'Đã thêm nghệ sĩ vào thư viện');
-        } else {
-          Alert.alert('Lỗi', 'Không thể thêm nghệ sĩ vào thư viện');
-        }
+        success = await addArtistToLibrary(user.userId, artist.artistId);
+      }
+
+      if (!success) {
+        setInLibrary(previousState);
+        Alert.alert('Lỗi', previousState ? 'Không thể xóa nghệ sĩ khỏi thư viện' : 'Không thể thêm nghệ sĩ vào thư viện');
+      } else {
+        Alert.alert('Thành công', previousState ? 'Đã xóa nghệ sĩ khỏi thư viện' : 'Đã thêm nghệ sĩ vào thư viện');
+        
+        // Refresh user data
+        await refreshUserData();
       }
     } catch (error) {
       console.error('Error toggling library:', error);
+      setInLibrary(previousState);
       Alert.alert('Lỗi', 'Có lỗi xảy ra');
     } finally {
       setLoadingLibrary(false);
@@ -236,22 +226,7 @@ export default function ArtistProfile() {
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={isFollowing ? styles.followingButton : styles.followButton}
-              onPress={handleToggleFollow}
-              disabled={loadingFollow}
-            >
-              {loadingFollow ? (
-                <ActivityIndicator size="small" color={isFollowing ? "#fff" : "#000"} />
-              ) : (
-                <>
-                  <Ionicons name={isFollowing ? "heart" : "heart-outline"} size={20} color={isFollowing ? "#fff" : "#000"} />
-                  <Text style={isFollowing ? styles.followingText : styles.followText}>
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            
 
             <TouchableOpacity
               style={inLibrary ? styles.libraryActiveButton : styles.libraryButton}
@@ -264,7 +239,7 @@ export default function ArtistProfile() {
                 <>
                   <Ionicons name={inLibrary ? "folder" : "folder-outline"} size={20} color={inLibrary ? "#fff" : "#000"} />
                   <Text style={inLibrary ? styles.libraryActiveText : styles.libraryText}>
-                    {inLibrary ? 'In Library' : 'Library'}
+                    {inLibrary ? 'Following' : 'Follow'}
                   </Text>
                 </>
               )}
