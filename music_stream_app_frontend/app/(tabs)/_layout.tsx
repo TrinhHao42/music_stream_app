@@ -105,12 +105,6 @@ const HomeLayout = () => {
                     href: null,
                 }}
             />
-             <Tabs.Screen
-                name="playlist-details"
-                options={{
-                    href: null,
-                }}
-            />
         </Tabs>
     );
 }
