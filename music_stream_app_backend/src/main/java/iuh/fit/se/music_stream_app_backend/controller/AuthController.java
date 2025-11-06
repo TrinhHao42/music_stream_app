@@ -81,4 +81,15 @@ public class AuthController {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+    @PutMapping("/users/{id}/rename")
+        public ResponseEntity<User> renameUser(@PathVariable String id, @RequestParam String newName){
+            boolean rs = userService.renameUsername(id, newName);
+            if (rs) {
+                Optional<User> updated = userService.findById(id);
+                return updated.map(ResponseEntity::ok)
+                        .orElseGet(() -> ResponseEntity.notFound().build());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+    }
 }

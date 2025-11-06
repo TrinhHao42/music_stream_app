@@ -31,7 +31,7 @@ public class SecurityEndpoints {
             "/songs/**",
 
             // Albums endpoints - public
-            "/libraries/**",
+
             "/accounts/upgrade/**",
             "/api/download/**",
             "/albums/**"
@@ -47,7 +47,7 @@ public class SecurityEndpoints {
             "/playlists/**",
 
             // Libraries - cần đăng nhập
-
+            "/libraries/**",
 
             // Account upgrade - cần đăng nhập
             "/accounts/upgrade/**",
@@ -56,7 +56,8 @@ public class SecurityEndpoints {
 
             // Current user info and logout
             "/api/auth/me",
-            "/api/auth/logout"
+            "/api/auth/logout",
+            "/api/auth/users/**"
     );
 
     // ==================== ROLE-BASED ENDPOINTS ====================

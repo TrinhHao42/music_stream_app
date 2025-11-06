@@ -301,10 +301,14 @@ export async function getArtistsByIds(artistIds: string[]): Promise<Artist[]> {
 // Lấy playlist theo ID
 export async function getPlaylistById(playlistId: string): Promise<Playlist | null> {
   try {
-    const response = await axiosInstance.get(`/api/playlists/${playlistId}`);
+    const response = await axiosInstance.get(`/playlists/${playlistId}`);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching playlist by id:', error);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
     return null;
   }
 }
@@ -345,167 +349,144 @@ export async function updateUser(userId: string, userData: Partial<User>): Promi
   }
 }
 
-// Thêm album vào danh sách yêu thích
-export async function addFavouriteAlbum(user: User, album: Album): Promise<User | null> {
+// Đổi tên user (cần JWT token)
+export async function renameUser(userId: string, newName: string): Promise<User | null> {
+  try {
+    const response = await axiosInstance.put(
+      `/api/auth/users/${userId}/rename`,
+      null,
+      {
+        params: { newName }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error renaming user:', error);
+    return null;
+  }
+}
+
+// Thêm album vào danh sách yêu thích (Library)
+// Tự động tăng favourite count của album
+export async function addFavouriteAlbum(userId: string, albumId: string): Promise<boolean> {
   try {
     // Bước 1: Thêm album vào library backend
-    const addedToLibrary = await addAlbumToLibrary(user.userId, album.albumId);
+    const addedToLibrary = await addAlbumToLibrary(userId, albumId);
     
     if (!addedToLibrary) {
       console.error('Failed to add album to library');
-      return null;
+      return false;
     }
 
-    // Bước 2: Cập nhật user object với album mới
-    const updatedFavouriteAlbums = [...(user.favouriteAlbums || [])];
-    if (!updatedFavouriteAlbums.includes(album.albumId)) {
-      updatedFavouriteAlbums.push(album.albumId);
+    // Bước 2: Lấy thông tin album hiện tại để cập nhật favourite count
+    const album = await getAlbumById(albumId);
+    if (album) {
+      // Tăng favourite count của album
+      await updateAlbumFavourites(albumId, album.favourites + 1);
     }
 
-    // Tạo user object mới với tất cả thông tin cũ + favouriteAlbums mới
-    const updatedUserData: Partial<User> = {
-      userName: user.userName,
-      playlists: user.playlists,
-      followList: user.followList,
-      likeList: user.likeList,
-      favouriteAlbums: updatedFavouriteAlbums,
-    };
-
-    // Bước 3: Cập nhật user
-    const updatedUser = await updateUser(user.userId, updatedUserData);
-    
-    if (!updatedUser) {
-      return null;
-    }
-
-    // Bước 4: Cập nhật album favourites count (có thể fail nhưng không ảnh hưởng)
-    updateAlbumFavourites(album.albumId, album.favourites + 1).catch((error) => {
-      console.error('Failed to update album favourites count, but album is added:', error);
-    });
-
-    return updatedUser;
+    return true;
   } catch (error) {
     console.error('Error adding favourite album:', error);
-    return null;
+    return false;
   }
 }
 
-// Xóa album khỏi danh sách yêu thích
-export async function removeFavouriteAlbum(user: User, album: Album): Promise<User | null> {
+// Xóa album khỏi danh sách yêu thích (Library)
+// Tự động giảm favourite count của album
+export async function removeFavouriteAlbum(userId: string, albumId: string): Promise<boolean> {
   try {
     // Bước 1: Xóa album khỏi library backend
-    const removedFromLibrary = await removeAlbumFromLibrary(user.userId, album.albumId);
+    const removedFromLibrary = await removeAlbumFromLibrary(userId, albumId);
     
     if (!removedFromLibrary) {
       console.error('Failed to remove album from library');
-      return null;
+      return false;
     }
 
-    // Bước 2: Cập nhật user object
-    const updatedFavouriteAlbums = (user.favouriteAlbums || []).filter(id => id !== album.albumId);
-
-    // Tạo user object mới với tất cả thông tin cũ + favouriteAlbums mới
-    const updatedUserData: Partial<User> = {
-      userName: user.userName,
-      playlists: user.playlists,
-      followList: user.followList,
-      likeList: user.likeList,
-      favouriteAlbums: updatedFavouriteAlbums,
-    };
-
-    // Bước 3: Cập nhật user
-    const updatedUser = await updateUser(user.userId, updatedUserData);
-    
-    if (!updatedUser) {
-      return null;
+    // Bước 2: Lấy thông tin album hiện tại để cập nhật favourite count
+    const album = await getAlbumById(albumId);
+    if (album) {
+      // Giảm favourite count của album
+      await updateAlbumFavourites(albumId, Math.max(0, album.favourites - 1));
     }
 
-    // Bước 4: Cập nhật album favourites count (có thể fail nhưng không ảnh hưởng)
-    updateAlbumFavourites(album.albumId, Math.max(0, album.favourites - 1)).catch((error) => {
-      console.error('Failed to update album favourites count, but album is removed:', error);
-    });
-
-    return updatedUser;
+    return true;
   } catch (error) {
     console.error('Error removing favourite album:', error);
-    return null;
+    return false;
   }
 }
 
-// Thêm artist vào danh sách theo dõi (followList)
-export async function addFavouriteArtist(user: User, artist: Artist): Promise<User | null> {
+// Thêm song vào danh sách yêu thích (Library)
+export async function addFavouriteSong(userId: string, songId: string): Promise<boolean> {
   try {
-    // Bước 1: Thêm artist vào library backend
-    const addedToLibrary = await addArtistToLibrary(user.userId, artist.artistId);
+    // Thêm song vào library backend
+    const addedToLibrary = await addSongToLibrary(userId, songId);
+    
+    if (!addedToLibrary) {
+      console.error('Failed to add song to library');
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error adding favourite song:', error);
+    return false;
+  }
+}
+
+// Xóa song khỏi danh sách yêu thích (Library)
+export async function removeFavouriteSong(userId: string, songId: string): Promise<boolean> {
+  try {
+    // Xóa song khỏi library backend
+    const removedFromLibrary = await removeSongFromLibrary(userId, songId);
+    
+    if (!removedFromLibrary) {
+      console.error('Failed to remove song from library');
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error removing favourite song:', error);
+    return false;
+  }
+}
+
+// Thêm artist vào danh sách yêu thích (Library)
+export async function addFavouriteArtist(userId: string, artistId: string): Promise<boolean> {
+  try {
+    // Thêm artist vào library backend
+    const addedToLibrary = await addArtistToLibrary(userId, artistId);
     
     if (!addedToLibrary) {
       console.error('Failed to add artist to library');
-      return null;
+      return false;
     }
 
-    // Bước 2: Cập nhật user object với artist mới vào followList
-    const updatedFollowList = [...(user.followList || [])];
-    if (!updatedFollowList.includes(artist.artistId)) {
-      updatedFollowList.push(artist.artistId);
-    }
-
-    // Tạo user object mới với tất cả thông tin cũ + followList mới
-    const updatedUserData: Partial<User> = {
-      userName: user.userName,
-      playlists: user.playlists,
-      followList: updatedFollowList,
-      likeList: user.likeList,
-      favouriteAlbums: user.favouriteAlbums,
-    };
-
-    // Bước 3: Cập nhật user
-    const updatedUser = await updateUser(user.userId, updatedUserData);
-    
-    if (!updatedUser) {
-      return null;
-    }
-
-    return updatedUser;
+    return true;
   } catch (error) {
     console.error('Error adding favourite artist:', error);
-    return null;
+    return false;
   }
 }
 
-// Xóa artist khỏi danh sách theo dõi
-export async function removeFavouriteArtist(user: User, artist: Artist): Promise<User | null> {
+// Xóa artist khỏi danh sách yêu thích (Library)
+export async function removeFavouriteArtist(userId: string, artistId: string): Promise<boolean> {
   try {
-    // Bước 1: Xóa artist khỏi library backend
-    const removedFromLibrary = await removeArtistFromLibrary(user.userId, artist.artistId);
+    // Xóa artist khỏi library backend
+    const removedFromLibrary = await removeArtistFromLibrary(userId, artistId);
     
     if (!removedFromLibrary) {
       console.error('Failed to remove artist from library');
-      return null;
+      return false;
     }
 
-    // Bước 2: Cập nhật user object - xóa artist khỏi followList
-    const updatedFollowList = (user.followList || []).filter(id => id !== artist.artistId);
-
-    // Tạo user object mới với tất cả thông tin cũ + followList mới
-    const updatedUserData: Partial<User> = {
-      userName: user.userName,
-      playlists: user.playlists,
-      followList: updatedFollowList,
-      likeList: user.likeList,
-      favouriteAlbums: user.favouriteAlbums,
-    };
-
-    // Bước 3: Cập nhật user
-    const updatedUser = await updateUser(user.userId, updatedUserData);
-    
-    if (!updatedUser) {
-      return null;
-    }
-
-    return updatedUser;
+    return true;
   } catch (error) {
     console.error('Error removing favourite artist:', error);
-    return null;
+    return false;
   }
 }
 
@@ -583,6 +564,41 @@ export async function getLibrary(userId: string): Promise<LibraryResponse | null
   }
 }
 
+// Lấy thống kê số lượng items trong library
+export async function getLibraryStats(userId: string): Promise<{
+  songs: number;
+  albums: number;
+  playlists: number;
+  artists: number;
+} | null> {
+  try {
+    const library = await getLibrary(userId);
+    if (!library) {
+      return {
+        songs: 0,
+        albums: 0,
+        playlists: 0,
+        artists: 0,
+      };
+    }
+
+    return {
+      songs: library.favouriteSongs?.length ?? 0,
+      albums: library.favouriteAlbums?.length ?? 0,
+      playlists: library.favouritePlaylists?.length ?? 0,
+      artists: library.favouriteArtists?.length ?? 0,
+    };
+  } catch (error) {
+    console.error('Error getting library stats:', error);
+    return {
+      songs: 0,
+      albums: 0,
+      playlists: 0,
+      artists: 0,
+    };
+  }
+}
+
 export async function addSongToLibrary(userId: string, songId: string): Promise<boolean> {
   try {
     await axiosInstance.post(`/libraries/${userId}/songs`, { itemId: songId });
@@ -615,7 +631,7 @@ export async function addArtistToLibrary(userId: string, artistId: string): Prom
 
 export async function addPlaylistToLibrary(userId: string, playlistId: string): Promise<boolean> {
   try {
-    const response = await axiosInstance.post(`/libraries/${userId}/playlists`, { itemId: playlistId });
+    await axiosInstance.post(`/libraries/${userId}/playlists`, { itemId: playlistId });
     return true;
   } catch (error: any) {
     
@@ -732,6 +748,7 @@ export default {
   logout,
   createLibrary,
   getLibrary,
+  getLibraryStats,
   addSongToLibrary,
   addAlbumToLibrary,
   addArtistToLibrary,
@@ -753,8 +770,11 @@ export default {
   searchSongs,
   getCurrentUser,
   updateUser,
+  renameUser,
   updateAlbum,
   updateAlbumFavourites,
+  addFavouriteSong,
+  removeFavouriteSong,
   addFavouriteAlbum,
   removeFavouriteAlbum,
   addFavouriteArtist,

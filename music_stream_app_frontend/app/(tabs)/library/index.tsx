@@ -1,10 +1,10 @@
 import {
   createPlaylist,
   getLibrary,
-  removeAlbumFromLibrary,
-  removeArtistFromLibrary,
+  removeFavouriteAlbum,
+  removeFavouriteArtist,
+  removeFavouriteSong,
   removePlaylistFromLibrary,
-  removeSongFromLibrary,
 } from '@/api/musicApi';
 import CartAlbumItem from '@/components/CartAlbumItem';
 import CartArtistItem from '@/components/CartArtistItem';
@@ -14,8 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Album, Artist, Song } from '@/types';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -56,7 +56,18 @@ const LibraryScreen = () => {
 
   useEffect(() => {
     loadLibrary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Auto refresh library khi màn hình được focus (quay lại từ màn hình khác)
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadLibrary();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user])
+  );
 
   const loadLibrary = async () => {
     if (!user) return;
@@ -122,16 +133,17 @@ const LibraryScreen = () => {
     if (!user) return;
     
     try {
-      const success = await removeSongFromLibrary(user.userId, songId);
+      // Sử dụng API mới - tự động xóa khỏi library
+      const success = await removeFavouriteSong(user.userId, songId);
       if (success) {
-        Alert.alert('Success', 'Song removed from library');
+        Alert.alert('Thành công', 'Đã xóa bài hát khỏi danh sách yêu thích');
         await loadLibrary();
       } else {
-        Alert.alert('Error', 'Failed to remove song');
+        Alert.alert('Lỗi', 'Không thể xóa bài hát');
       }
     } catch (error) {
       console.error('Error removing song:', error);
-      Alert.alert('Error', 'Failed to remove song');
+      Alert.alert('Lỗi', 'Không thể xóa bài hát');
     }
   };
 
@@ -139,16 +151,17 @@ const LibraryScreen = () => {
     if (!user) return;
     
     try {
-      const success = await removeAlbumFromLibrary(user.userId, albumId);
+      // Sử dụng API mới - tự động giảm favourite count của album
+      const success = await removeFavouriteAlbum(user.userId, albumId);
       if (success) {
-        Alert.alert('Success', 'Album removed from library');
+        Alert.alert('Thành công', 'Đã xóa album khỏi danh sách yêu thích');
         await loadLibrary();
       } else {
-        Alert.alert('Error', 'Failed to remove album');
+        Alert.alert('Lỗi', 'Không thể xóa album');
       }
     } catch (error) {
       console.error('Error removing album:', error);
-      Alert.alert('Error', 'Failed to remove album');
+      Alert.alert('Lỗi', 'Không thể xóa album');
     }
   };
 
@@ -156,16 +169,17 @@ const LibraryScreen = () => {
     if (!user) return;
     
     try {
-      const success = await removeArtistFromLibrary(user.userId, artistId);
+      // Sử dụng API mới - tự động xóa khỏi library
+      const success = await removeFavouriteArtist(user.userId, artistId);
       if (success) {
-        Alert.alert('Success', 'Artist removed from library');
+        Alert.alert('Thành công', 'Đã bỏ theo dõi nghệ sĩ');
         await loadLibrary();
       } else {
-        Alert.alert('Error', 'Failed to remove artist');
+        Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
       }
     } catch (error) {
       console.error('Error removing artist:', error);
-      Alert.alert('Error', 'Failed to remove artist');
+      Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
     }
   };
 
@@ -175,14 +189,14 @@ const LibraryScreen = () => {
     try {
       const success = await removePlaylistFromLibrary(user.userId, playlistId);
       if (success) {
-        Alert.alert('Success', 'Playlist removed from library');
+        Alert.alert('Thành công', 'Đã xóa playlist khỏi thư viện');
         await loadLibrary();
       } else {
-        Alert.alert('Error', 'Failed to remove playlist');
+        Alert.alert('Lỗi', 'Không thể xóa playlist');
       }
     } catch (error) {
       console.error('Error removing playlist:', error);
-      Alert.alert('Error', 'Failed to remove playlist');
+      Alert.alert('Lỗi', 'Không thể xóa playlist');
     }
   };
 
@@ -242,11 +256,11 @@ const LibraryScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     Alert.alert(
-                      'Remove Song',
-                      `Remove "${item.title}" from library?`,
+                      'Xóa bài hát',
+                      `Xóa "${item.title}" khỏi danh sách yêu thích?`,
                       [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Remove', style: 'destructive', onPress: () => handleRemoveSong(item.songId) },
+                        { text: 'Hủy', style: 'cancel' },
+                        { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveSong(item.songId) },
                       ]
                     );
                   }}
@@ -278,11 +292,11 @@ const LibraryScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     Alert.alert(
-                      'Remove Album',
-                      `Remove "${item.albumName}" from library?`,
+                      'Xóa album',
+                      `Xóa "${item.albumName}" khỏi danh sách yêu thích?`,
                       [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Remove', style: 'destructive', onPress: () => handleRemoveAlbum(item.albumId) },
+                        { text: 'Hủy', style: 'cancel' },
+                        { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveAlbum(item.albumId) },
                       ]
                     );
                   }}
@@ -314,11 +328,11 @@ const LibraryScreen = () => {
                 <TouchableOpacity
                   onPress={() => {
                     Alert.alert(
-                      'Unfollow Artist',
-                      `Unfollow "${item.artistName}"?`,
+                      'Bỏ theo dõi',
+                      `Bỏ theo dõi "${item.artistName}"?`,
                       [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Unfollow', style: 'destructive', onPress: () => handleRemoveArtist(item.artistId) },
+                        { text: 'Hủy', style: 'cancel' },
+                        { text: 'Bỏ theo dõi', style: 'destructive', onPress: () => handleRemoveArtist(item.artistId) },
                       ]
                     );
                   }}
@@ -367,11 +381,11 @@ const LibraryScreen = () => {
                         <TouchableOpacity
                           onPress={() => {
                             Alert.alert(
-                              'Remove Playlist',
-                              `Remove "${playlist.playlistName}" from library?`,
+                              'Xóa playlist',
+                              `Xóa "${playlist.playlistName}" khỏi thư viện?`,
                               [
-                                { text: 'Cancel', style: 'cancel' },
-                                { text: 'Remove', style: 'destructive', onPress: () => handleRemovePlaylist(playlist.playlistId) },
+                                { text: 'Hủy', style: 'cancel' },
+                                { text: 'Xóa', style: 'destructive', onPress: () => handleRemovePlaylist(playlist.playlistId) },
                               ]
                             );
                           }}
@@ -393,11 +407,11 @@ const LibraryScreen = () => {
                         <TouchableOpacity
                           onPress={() => {
                             Alert.alert(
-                              'Remove Song',
-                              `Remove "${song.title}" from library?`,
+                              'Xóa bài hát',
+                              `Xóa "${song.title}" khỏi danh sách yêu thích?`,
                               [
-                                { text: 'Cancel', style: 'cancel' },
-                                { text: 'Remove', style: 'destructive', onPress: () => handleRemoveSong(song.songId) },
+                                { text: 'Hủy', style: 'cancel' },
+                                { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveSong(song.songId) },
                               ]
                             );
                           }}
@@ -415,11 +429,11 @@ const LibraryScreen = () => {
                         <TouchableOpacity
                           onPress={() => {
                             Alert.alert(
-                              'Remove Album',
-                              `Remove "${album.albumName}" from library?`,
+                              'Xóa album',
+                              `Xóa "${album.albumName}" khỏi danh sách yêu thích?`,
                               [
-                                { text: 'Cancel', style: 'cancel' },
-                                { text: 'Remove', style: 'destructive', onPress: () => handleRemoveAlbum(album.albumId) },
+                                { text: 'Hủy', style: 'cancel' },
+                                { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveAlbum(album.albumId) },
                               ]
                             );
                           }}
@@ -437,11 +451,11 @@ const LibraryScreen = () => {
                         <TouchableOpacity
                           onPress={() => {
                             Alert.alert(
-                              'Unfollow Artist',
-                              `Unfollow "${artist.artistName}"?`,
+                              'Bỏ theo dõi',
+                              `Bỏ theo dõi "${artist.artistName}"?`,
                               [
-                                { text: 'Cancel', style: 'cancel' },
-                                { text: 'Unfollow', style: 'destructive', onPress: () => handleRemoveArtist(artist.artistId) },
+                                { text: 'Hủy', style: 'cancel' },
+                                { text: 'Bỏ theo dõi', style: 'destructive', onPress: () => handleRemoveArtist(artist.artistId) },
                               ]
                             );
                           }}
