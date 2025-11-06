@@ -214,11 +214,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (userData) {
                 setUser(userData);
                 setIsPremium(Boolean(userData.isPremium));
-                await storage.setItem('user', JSON.stringify(userData));
-                await storage.setItem('isPremium', JSON.stringify(userData.isPremium));
+                // Lưu vào storage, nhưng không throw nếu lỗi để tránh crash
+                try {
+                    await storage.setItem('user', JSON.stringify(userData));
+                    await storage.setItem('isPremium', JSON.stringify(userData.isPremium));
+                } catch (storageError) {
+                    console.warn('Failed to save user data to storage (non-critical):', storageError);
+                    // Vẫn tiếp tục vì state đã được update
+                }
             }
         } catch (error) {
             console.error('Error refreshing user data:', error);
+            // Không throw để tránh crash app
         }
     };
 

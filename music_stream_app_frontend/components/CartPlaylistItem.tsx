@@ -23,7 +23,7 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
   const handlePress = () => {
     // Always navigate with playlistId only
     router.push({
-      pathname: '/playlist-details',
+      pathname: '/(tabs)/library/playlist-details',
       params: {
         playlistId: playlist.playlistId,
       },
@@ -46,7 +46,7 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={handlePress}>
       <Image
-        source={require('@/assets/images/My Library/Image 101.png')}
+        source={require('@/assets/images/My Playlists/playlistImg.png')}
         style={styles.img}
         contentFit="cover"
         transition={0}

@@ -437,9 +437,15 @@ const PlaylistDetailsLibraryScreen = () => {
 
       {/* Playlist Info */}
       <View style={styles.playlistInfo}>
-        <View style={styles.playlistIcon}>
-          <Ionicons name="musical-notes" size={40} color="#fff" />
-        </View>
+       
+        <Image
+        source={require('@/assets/images/My Playlists/playlistImg.png')}
+        style={styles.img}
+        contentFit="cover"
+        transition={0}
+        cachePolicy="memory-disk"
+      />
+      
         <Text style={styles.playlistName}>{playlist.playlistName}</Text>
         <Text style={styles.songCount}>{songs.length} songs</Text>
       </View>
@@ -857,6 +863,11 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     padding: 20,
+  },
+  img: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
   },
   optionItem: {
     flexDirection: 'row',
