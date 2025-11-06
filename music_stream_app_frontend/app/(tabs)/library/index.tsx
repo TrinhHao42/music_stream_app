@@ -14,8 +14,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Album, Artist, Song } from '@/types';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -36,10 +37,13 @@ type Playlist = {
   songs: string[];
 };
 
+const CACHE_KEY = 'user_library_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
+
 const LibraryScreen = () => {
-  const categories = ['Playlists', 'Songs', 'Albums', 'Artists'];
+  const categories = useMemo(() => ['Playlists', 'Songs', 'Albums', 'Artists'], []);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [playlistName, setPlaylistName] = useState('');
@@ -48,16 +52,84 @@ const LibraryScreen = () => {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Library data
   const [songs, setSongs] = useState<Song[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
+  // === Cache Helpers ===
+  const saveCache = async (data: any) => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: Date.now(),
+      };
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+    } catch (error) {
+      console.warn('Failed to save library cache', error);
+    }
+  };
+
+  const loadCache = async (): Promise<any | null> => {
+    try {
+      const cached = await AsyncStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp > CACHE_DURATION) {
+        return null; // Cache hết hạn
+      }
+      return data;
+    } catch (error) {
+      console.warn('Failed to load library cache', error);
+      return null;
+    }
+  };
+
+  // === Load Library ===
+  const loadLibrary = useCallback(
+    async (forceRefresh = false) => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      if (!forceRefresh) {
+        const cached = await loadCache();
+        if (cached) {
+          setSongs(cached.favouriteSongs || []);
+          setAlbums(cached.favouriteAlbums || []);
+          setArtists(cached.favouriteArtists || []);
+          setPlaylists(cached.favouritePlaylists || []);
+          setIsLoading(false);
+        }
+      }
+
+      try {
+        const library = await getLibrary(user.userId);
+        if (library) {
+          setSongs(library.favouriteSongs || []);
+          setAlbums(library.favouriteAlbums || []);
+          setArtists(library.favouriteArtists || []);
+          setPlaylists(library.favouritePlaylists || []);
+          await saveCache(library); // Cập nhật cache
+        }
+      } catch (error) {
+        console.error('Error loading library:', error);
+        if (forceRefresh) {
+          Alert.alert('Error', 'Failed to refresh library');
+        }
+      } finally {
+        setIsLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [user]
+  );
+
   useEffect(() => {
     loadLibrary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [loadLibrary]);
 
   // Auto refresh library khi màn hình được focus (quay lại từ màn hình khác)
   useFocusEffect(
@@ -65,49 +137,23 @@ const LibraryScreen = () => {
       if (user) {
         loadLibrary();
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user])
+    }, [user, loadLibrary])
   );
 
-  const loadLibrary = async () => {
-    if (!user) return;
-
-    setIsLoading(true);
-    try {
-      const library = await getLibrary(user.userId);
-      if (library) {
-        setSongs(library.favouriteSongs || []);
-        setAlbums(library.favouriteAlbums || []);
-        setArtists(library.favouriteArtists || []);
-        setPlaylists(library.favouritePlaylists || []);
-      }
-    } catch (error) {
-      console.error('Error loading library:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setRefreshing(true);
-    await loadLibrary();
-    setRefreshing(false);
+    loadLibrary(true);
   };
 
+  // === Create Playlist ===
   const handleCreatePlaylist = async () => {
-    if (!user) {
-      Alert.alert('Error', 'Please login to create playlist');
-      return;
-    }
-
-    if (!playlistName.trim()) {
-      Alert.alert('Error', 'Please enter playlist name');
+    if (!user || !playlistName.trim()) {
+      Alert.alert('Error', !user ? 'Please login' : 'Enter playlist name');
       return;
     }
 
     setCreating(true);
     try {
-      // Create playlist - backend will automatically add to library
       const newPlaylist = await createPlaylist({
         playlistName: playlistName.trim(),
         userId: user.userId,
@@ -115,92 +161,108 @@ const LibraryScreen = () => {
       });
 
       if (newPlaylist) {
-        console.log('Playlist created:', newPlaylist);
-        Alert.alert('Success', 'Playlist created successfully');
+        Alert.alert('Success', 'Playlist created!');
         setModalVisible(false);
         setPlaylistName('');
-        await loadLibrary(); // Reload to show new playlist
+        await loadLibrary(true); // Force reload
       }
     } catch (error: any) {
-      console.error('Error creating playlist:', error);
-      Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to create playlist');
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to create playlist');
     } finally {
       setCreating(false);
     }
   };
 
-  const handleRemoveSong = async (songId: string) => {
+  // === Remove Handlers === (API mới)
+  const handleRemoveSong = useCallback(async (songId: string) => {
     if (!user) return;
-    
     try {
-      // Sử dụng API mới - tự động xóa khỏi library
       const success = await removeFavouriteSong(user.userId, songId);
       if (success) {
         Alert.alert('Thành công', 'Đã xóa bài hát khỏi danh sách yêu thích');
-        await loadLibrary();
+        await loadLibrary(true);
       } else {
         Alert.alert('Lỗi', 'Không thể xóa bài hát');
       }
     } catch (error) {
-      console.error('Error removing song:', error);
       Alert.alert('Lỗi', 'Không thể xóa bài hát');
     }
-  };
+  }, [user, loadLibrary]);
 
-  const handleRemoveAlbum = async (albumId: string) => {
+  const handleRemoveAlbum = useCallback(async (albumId: string) => {
     if (!user) return;
-    
     try {
-      // Sử dụng API mới - tự động giảm favourite count của album
       const success = await removeFavouriteAlbum(user.userId, albumId);
       if (success) {
         Alert.alert('Thành công', 'Đã xóa album khỏi danh sách yêu thích');
-        await loadLibrary();
+        await loadLibrary(true);
       } else {
         Alert.alert('Lỗi', 'Không thể xóa album');
       }
     } catch (error) {
-      console.error('Error removing album:', error);
       Alert.alert('Lỗi', 'Không thể xóa album');
     }
-  };
+  }, [user, loadLibrary]);
 
-  const handleRemoveArtist = async (artistId: string) => {
+  const handleRemoveArtist = useCallback(async (artistId: string) => {
     if (!user) return;
-    
     try {
-      // Sử dụng API mới - tự động xóa khỏi library
       const success = await removeFavouriteArtist(user.userId, artistId);
       if (success) {
         Alert.alert('Thành công', 'Đã bỏ theo dõi nghệ sĩ');
-        await loadLibrary();
+        await loadLibrary(true);
       } else {
         Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
       }
     } catch (error) {
-      console.error('Error removing artist:', error);
       Alert.alert('Lỗi', 'Không thể bỏ theo dõi nghệ sĩ');
     }
-  };
+  }, [user, loadLibrary]);
 
-  const handleRemovePlaylist = async (playlistId: string) => {
+  const handleRemovePlaylist = useCallback(async (playlistId: string) => {
     if (!user) return;
-    
     try {
       const success = await removePlaylistFromLibrary(user.userId, playlistId);
       if (success) {
         Alert.alert('Thành công', 'Đã xóa playlist khỏi thư viện');
-        await loadLibrary();
+        await loadLibrary(true);
       } else {
         Alert.alert('Lỗi', 'Không thể xóa playlist');
       }
     } catch (error) {
-      console.error('Error removing playlist:', error);
       Alert.alert('Lỗi', 'Không thể xóa playlist');
     }
-  };
+  }, [user, loadLibrary]);
 
-  const renderContent = () => {
+  // === Render Item Helpers ===
+  const renderItemWithDelete = useCallback(
+    (item: any, titleKey: string, onRemove: (id: string) => void, Component: any, props?: any, propKey?: string) => (
+      <View style={styles.itemWithDelete}>
+        <View style={{ flex: 1 }}>
+          <Component {...{ [propKey || titleKey]: item, ...props }} />
+        </View>
+        <TouchableOpacity
+          onPress={() => {
+            Alert.alert(
+              'Remove',
+              `Remove "${item[titleKey]}"?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Remove', style: 'destructive', onPress: () => onRemove(item[`${titleKey.replace('Name', '')}Id`]) },
+              ]
+            );
+          }}
+          style={styles.deleteBtn}
+        >
+          <Ionicons name="trash-outline" size={20} color="#E53935" />
+        </TouchableOpacity>
+      </View>
+    ),
+    []
+  );
+
+  // === Render Content ===
+  const renderContent = useMemo(() => {
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
@@ -217,279 +279,146 @@ const LibraryScreen = () => {
       );
     }
 
-    switch (selectedCategory) {
-      case 'Playlists':
-        return (
-          <FlatList
-            data={playlists}
-            renderItem={({ item }) => (
-              <CartPlaylistItem
-                playlist={item}
-                showRemove={true}
-                onRemove={() => handleRemovePlaylist(item.playlistId)}
-                fromLibrary={true}
-              />
-            )}
-            keyExtractor={(item) => item.playlistId}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No playlists yet. Create one!</Text>
-            }
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-            }
-          />
-        );
+    const dataMap: {
+      [key: string]: {
+        data: any[];
+        titleKey: string;
+        Component: React.ComponentType<any>;
+        props?: any;
+        propKey?: string; // Key to use when passing item to component
+      };
+    } = {
+      Playlists: { 
+        data: playlists, 
+        titleKey: 'playlistName', 
+        Component: CartPlaylistItem, 
+        props: { showRemove: false, fromLibrary: true },
+        propKey: 'playlist'
+      },
+      Songs: { 
+        data: songs, 
+        titleKey: 'title', 
+        Component: CartSongItem, 
+        props: { showAddToPlaylist: true, showDownloaded: true },
+        propKey: 'song'
+      },
+      Albums: { 
+        data: albums, 
+        titleKey: 'albumName', 
+        Component: CartAlbumItem,
+        propKey: 'album'
+      },
+      Artists: { 
+        data: artists, 
+        titleKey: 'artistName', 
+        Component: CartArtistItem,
+        propKey: 'artist'
+      },
+    };
 
-      case 'Songs':
-        return (
-          <FlatList
-            data={songs}
-            renderItem={({ item }) => (
-              <View style={styles.itemWithDelete}>
-                <View style={{ flex: 1 }}>
-                  <CartSongItem 
-                    song={item} 
-                    showAddToPlaylist={true}
-                    showDownloaded={user !== null}
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={() => {
-                    Alert.alert(
-                      'Xóa bài hát',
-                      `Xóa "${item.title}" khỏi danh sách yêu thích?`,
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveSong(item.songId) },
-                      ]
-                    );
-                  }}
-                  style={styles.deleteBtn}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#E53935" />
-                </TouchableOpacity>
-              </View>
-            )}
-            keyExtractor={(item) => item.songId}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No favourite songs yet</Text>
-            }
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-            }
-          />
-        );
+    if (selectedCategory) {
+      const { data, titleKey, Component, props = {}, propKey } = dataMap[selectedCategory];
+      const onRemoveMap: { [key: string]: ((id: string) => Promise<void>) | undefined } = {
+        Playlists: handleRemovePlaylist,
+        Songs: handleRemoveSong,
+        Albums: handleRemoveAlbum,
+        Artists: handleRemoveArtist,
+      };
+      const onRemove = onRemoveMap[selectedCategory];
 
-      case 'Albums':
-        return (
-          <FlatList
-            data={albums}
-            renderItem={({ item }) => (
-              <View style={styles.itemWithDelete}>
-                <View style={{ flex: 1 }}>
-                  <CartAlbumItem album={item} />
-                </View>
-                <TouchableOpacity
-                  onPress={() => {
-                    Alert.alert(
-                      'Xóa album',
-                      `Xóa "${item.albumName}" khỏi danh sách yêu thích?`,
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveAlbum(item.albumId) },
-                      ]
-                    );
-                  }}
-                  style={styles.deleteBtn}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#E53935" />
-                </TouchableOpacity>
-              </View>
-            )}
-            keyExtractor={(item) => item.albumId}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No favourite albums yet</Text>
-            }
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-            }
-          />
-        );
-
-      case 'Artists':
-        return (
-          <FlatList
-            data={artists}
-            renderItem={({ item }) => (
-              <View style={styles.itemWithDelete}>
-                <View style={{ flex: 1 }}>
-                  <CartArtistItem artist={item} />
-                </View>
-                <TouchableOpacity
-                  onPress={() => {
-                    Alert.alert(
-                      'Bỏ theo dõi',
-                      `Bỏ theo dõi "${item.artistName}"?`,
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        { text: 'Bỏ theo dõi', style: 'destructive', onPress: () => handleRemoveArtist(item.artistId) },
-                      ]
-                    );
-                  }}
-                  style={styles.deleteBtn}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#E53935" />
-                </TouchableOpacity>
-              </View>
-            )}
-            keyExtractor={(item) => item.artistId}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No favourite artists yet</Text>
-            }
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-            }
-          />
-        );
-
-      default:
-        // Show all categories when nothing is selected
-        return (
-          <FlatList
-            data={[
-              { type: 'section', title: 'Playlists', data: playlists },
-              { type: 'section', title: 'Songs', data: songs },
-              { type: 'section', title: 'Albums', data: albums },
-              { type: 'section', title: 'Artists', data: artists },
-            ]}
-            renderItem={({ item }: any) => {
-              if (item.type === 'section') {
-                if (item.data.length === 0) return null;
-                
-                return (
-                  <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>{item.title}</Text>
-                    {item.title === 'Playlists' && item.data.slice(0, 3).map((playlist: any) => (
-                      <View key={playlist.playlistId} style={styles.itemWithDelete}>
-                        <View style={{ flex: 1 }}>
-                          <CartPlaylistItem
-                            playlist={playlist}
-                            showRemove={false}
-                            fromLibrary={true}
-                          />
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            Alert.alert(
-                              'Xóa playlist',
-                              `Xóa "${playlist.playlistName}" khỏi thư viện?`,
-                              [
-                                { text: 'Hủy', style: 'cancel' },
-                                { text: 'Xóa', style: 'destructive', onPress: () => handleRemovePlaylist(playlist.playlistId) },
-                              ]
-                            );
-                          }}
-                          style={styles.deleteBtn}
-                        >
-                          <Ionicons name="trash-outline" size={20} color="#E53935" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    {item.title === 'Songs' && item.data.slice(0, 3).map((song: Song) => (
-                      <View key={song.songId} style={styles.itemWithDelete}>
-                        <View style={{ flex: 1 }}>
-                          <CartSongItem
-                            song={song}
-                            showAddToPlaylist={true}
-                            showDownloaded={user !== null}
-                          />
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            Alert.alert(
-                              'Xóa bài hát',
-                              `Xóa "${song.title}" khỏi danh sách yêu thích?`,
-                              [
-                                { text: 'Hủy', style: 'cancel' },
-                                { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveSong(song.songId) },
-                              ]
-                            );
-                          }}
-                          style={styles.deleteBtn}
-                        >
-                          <Ionicons name="trash-outline" size={20} color="#E53935" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    {item.title === 'Albums' && item.data.slice(0, 3).map((album: Album) => (
-                      <View key={album.albumId} style={styles.itemWithDelete}>
-                        <View style={{ flex: 1 }}>
-                          <CartAlbumItem album={album} />
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            Alert.alert(
-                              'Xóa album',
-                              `Xóa "${album.albumName}" khỏi danh sách yêu thích?`,
-                              [
-                                { text: 'Hủy', style: 'cancel' },
-                                { text: 'Xóa', style: 'destructive', onPress: () => handleRemoveAlbum(album.albumId) },
-                              ]
-                            );
-                          }}
-                          style={styles.deleteBtn}
-                        >
-                          <Ionicons name="trash-outline" size={20} color="#E53935" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    {item.title === 'Artists' && item.data.slice(0, 3).map((artist: Artist) => (
-                      <View key={artist.artistId} style={styles.itemWithDelete}>
-                        <View style={{ flex: 1 }}>
-                          <CartArtistItem artist={artist} />
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            Alert.alert(
-                              'Bỏ theo dõi',
-                              `Bỏ theo dõi "${artist.artistName}"?`,
-                              [
-                                { text: 'Hủy', style: 'cancel' },
-                                { text: 'Bỏ theo dõi', style: 'destructive', onPress: () => handleRemoveArtist(artist.artistId) },
-                              ]
-                            );
-                          }}
-                          style={styles.deleteBtn}
-                        >
-                          <Ionicons name="trash-outline" size={20} color="#E53935" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    {item.data.length > 3 && (
-                      <TouchableOpacity
-                        style={styles.seeMoreBtn}
-                        onPress={() => setSelectedCategory(item.title)}
-                      >
-                        <Text style={styles.seeMoreText}>See all {item.data.length} {item.title.toLowerCase()}</Text>
-                        <Ionicons name="chevron-forward" size={16} color="#1ce5ff" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              }
-              return null;
-            }}
-            keyExtractor={(item, index) => `${item.title}-${index}`}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>Your library is empty. Start adding your favorites!</Text>
-            }
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-            }
-          />
-        );
+      return (
+        <FlatList
+          data={data}
+          renderItem={({ item }) => renderItemWithDelete(item, titleKey, onRemove!, Component, props, propKey)}
+          keyExtractor={(item) => item[`${titleKey.replace('Name', '')}Id`]}
+          ListEmptyComponent={<Text style={styles.emptyText}>No {selectedCategory.toLowerCase()} yet</Text>}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        />
+      );
     }
-  };
+
+    // Default: Show all sections
+    const sections = categories.map((cat) => {
+      const onRemoveMap: { [key: string]: ((id: string) => Promise<void>) | undefined } = {
+        Playlists: handleRemovePlaylist,
+        Songs: handleRemoveSong,
+        Albums: handleRemoveAlbum,
+        Artists: handleRemoveArtist,
+      };
+      
+      return {
+        title: cat,
+        data: dataMap[cat].data.slice(0, 3),
+        fullCount: dataMap[cat].data.length,
+        titleKey: dataMap[cat].titleKey,
+        Component: dataMap[cat].Component,
+        props: dataMap[cat].props || {},
+        propKey: dataMap[cat].propKey,
+        onRemove: onRemoveMap[cat],
+      };
+    });
+
+    return (
+      <FlatList
+        data={sections}
+        renderItem={({ item }) => {
+          if (item.data.length === 0) return null;
+
+          return (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>{item.title}</Text>
+              {item.data.map((el: any) => (
+                <View key={el[`${item.titleKey.replace('Name', '')}Id`]} style={styles.itemWithDelete}>
+                  <View style={{ flex: 1 }}>
+                    <item.Component {...{ [item.propKey || item.titleKey]: el, ...item.props }} />
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert(
+                        'Remove',
+                        `Remove "${el[item.titleKey]}"?`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Remove', style: 'destructive', onPress: () => item.onRemove?.(el[`${item.titleKey.replace('Name', '')}Id`]) },
+                        ]
+                      );
+                    }}
+                    style={styles.deleteBtn}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#E53935" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {item.fullCount > 3 && (
+                <TouchableOpacity style={styles.seeMoreBtn} onPress={() => setSelectedCategory(item.title)}>
+                  <Text style={styles.seeMoreText}>See all {item.fullCount} {item.title.toLowerCase()}</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#1ce5ff" />
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        }}
+        keyExtractor={(item) => item.title}
+        ListEmptyComponent={<Text style={styles.emptyText}>Your library is empty. Start adding favorites!</Text>}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      />
+    );
+  }, [
+    isLoading,
+    user,
+    selectedCategory,
+    playlists,
+    songs,
+    albums,
+    artists,
+    refreshing,
+    handleRefresh,
+    renderItemWithDelete,
+    handleRemovePlaylist,
+    handleRemoveSong,
+    handleRemoveAlbum,
+    handleRemoveArtist,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -509,19 +438,10 @@ const LibraryScreen = () => {
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity
-              activeOpacity={0.7}
-              style={[
-                styles.categoryBtn,
-                selectedCategory === item && styles.categoryBtnActive,
-              ]}
+              style={[styles.categoryBtn, selectedCategory === item && styles.categoryBtnActive]}
               onPress={() => setSelectedCategory(selectedCategory === item ? '' : item)}
             >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === item && styles.categoryTextActive,
-                ]}
-              >
+              <Text style={[styles.categoryText, selectedCategory === item && styles.categoryTextActive]}>
                 {item}
               </Text>
             </TouchableOpacity>
@@ -531,30 +451,20 @@ const LibraryScreen = () => {
       </View>
 
       {/* Content */}
-      {renderContent()}
+      {renderContent}
 
-      {/* Floating Add Button - show when Playlists tab selected or no tab selected */}
-      {(selectedCategory === 'Playlists' || selectedCategory === '') && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => setModalVisible(true)}
-          activeOpacity={0.8}
-        >
+      {/* FAB */}
+      {(selectedCategory === 'Playlists' || !selectedCategory) && (
+        <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
           <AntDesign name="plus" size={28} color="#fff" />
         </TouchableOpacity>
       )}
 
       {/* Create Playlist Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Create New Playlist</Text>
-
             <TextInput
               style={styles.input}
               placeholder="Playlist name"
@@ -562,7 +472,6 @@ const LibraryScreen = () => {
               onChangeText={setPlaylistName}
               autoFocus
             />
-
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.cancelBtn]}
@@ -574,17 +483,12 @@ const LibraryScreen = () => {
               >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.modalBtn, styles.createBtn]}
                 onPress={handleCreatePlaylist}
                 disabled={creating}
               >
-                {creating ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.createBtnText}>Create</Text>
-                )}
+                {creating ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>Create</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -595,10 +499,7 @@ const LibraryScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -608,11 +509,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#eee',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#11181C',
-  },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: '#11181C' },
   categoriesContainer: {
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -626,37 +523,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F5',
     marginRight: 8,
   },
-  categoryBtnActive: {
-    backgroundColor: '#11181C',
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#687076',
-  },
-  categoryTextActive: {
-    color: '#FFFFFF',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#687076',
-    marginTop: 40,
-    fontSize: 15,
-  },
+  categoryBtnActive: { backgroundColor: '#11181C' },
+  categoryText: { fontSize: 14, fontWeight: '600', color: '#687076' },
+  categoryTextActive: { color: '#FFFFFF' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { textAlign: 'center', color: '#687076', marginTop: 40, fontSize: 15 },
   itemWithDelete: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#eee',
   },
-  deleteBtn: {
-    padding: 12,
-  },
+  deleteBtn: { padding: 12 },
   fab: {
     position: 'absolute',
     right: 20,
@@ -673,25 +551,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '85%', maxWidth: 400 },
+  modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20, textAlign: 'center' },
   input: {
     borderWidth: 1,
     borderColor: '#E6E8EB',
@@ -701,57 +563,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 20,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  cancelBtn: {
-    backgroundColor: '#E6E8EB',
-  },
-  cancelBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#11181C',
-  },
-  createBtn: {
-    backgroundColor: '#11181C',
-  },
-  createBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  sectionContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#11181C',
-    marginBottom: 12,
-  },
-  seeMoreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingVertical: 8,
-    marginTop: 8,
-  },
-  seeMoreText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1ce5ff',
-    marginRight: 4,
-  },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  cancelBtn: { backgroundColor: '#E6E8EB' },
+  cancelBtnText: { fontSize: 16, fontWeight: '600', color: '#11181C' },
+  createBtn: { backgroundColor: '#11181C' },
+  createBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  sectionContainer: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#11181C', marginBottom: 12 },
+  seeMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingVertical: 8, marginTop: 8 },
+  seeMoreText: { fontSize: 14, fontWeight: '600', color: '#1ce5ff', marginRight: 4 },
 });
 
 export default LibraryScreen;

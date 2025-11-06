@@ -10,6 +10,7 @@ import {
   Alert,
   FlatList,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,12 +27,14 @@ type Playlist = {
 
 const PlaylistDetailsLibraryScreen = () => {
   const router = useRouter();
-  const params = useLocalSearchParams<{ playlistId: string }>();
+  const { playlist: playlistParam, playlistId } = useLocalSearchParams<{ playlist?: string; playlistId?: string }>();
   const { user } = useAuth();
+
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingSongId, setLoadingSongId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommendedSong, setRecommendedSong] = useState<Song | null>(null);
   
@@ -49,6 +52,39 @@ const PlaylistDetailsLibraryScreen = () => {
     otherPlaylists: [],
   });
   const [adding, setAdding] = useState(false);
+
+  // Parse playlist JSON một lần nếu được truyền
+  useEffect(() => {
+    if (!playlistParam) return;
+    try {
+      const parsed = JSON.parse(playlistParam);
+      setPlaylist(parsed);
+    } catch (err) {
+      console.error('Invalid playlist param:', err);
+      Alert.alert('Error', 'Invalid playlist data');
+    }
+  }, [playlistParam]);
+
+  // Load songs khi playlist thay đổi (object có sẵn)
+  const loadSongs = useCallback(async () => {
+    if (!playlist) return;
+    try {
+      setLoading(true);
+      if (!playlist.songs?.length) {
+        setSongs([]);
+        return;
+      }
+      const fetched = await Promise.all(playlist.songs.map((id) => getSongById(id)));
+      const validSongs = fetched.filter((s): s is Song => s != null);
+      setSongs(validSongs);
+    } catch (err) {
+      console.error('Error loading songs:', err);
+      Alert.alert('Error', 'Failed to load playlist songs');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [playlist]);
 
   const loadPlaylistAndSongs = useCallback(async (playlistId: string) => {
     setLoading(true);
@@ -108,64 +144,81 @@ const PlaylistDetailsLibraryScreen = () => {
       }, 100);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [router]);
 
   useEffect(() => {
-    if (params.playlistId) {
-      loadPlaylistAndSongs(params.playlistId);
+    if (playlistId) {
+      loadPlaylistAndSongs(String(playlistId));
     }
-  }, [params.playlistId, loadPlaylistAndSongs]);
+  }, [playlistId, loadPlaylistAndSongs]);
 
-  // Auto refresh playlist khi màn hình được focus (quay lại từ màn hình khác)
   useFocusEffect(
     useCallback(() => {
-      if (params.playlistId) {
-        console.log('Playlist screen focused, reloading...');
-        loadPlaylistAndSongs(params.playlistId);
+      if (playlistId) {
+        loadPlaylistAndSongs(String(playlistId));
       }
-    }, [params.playlistId, loadPlaylistAndSongs])
+    }, [playlistId, loadPlaylistAndSongs])
   );
 
+  /** ✅ Xóa bài hát */
   const handleRemoveSong = async (songId: string) => {
     if (!playlist || !user) return;
 
-    Alert.alert(
-      'Remove Song',
-      'Remove this song from playlist?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            setLoadingSongId(songId);
-            try {
-              const success = await removeSongFromPlaylist(playlist.playlistId, songId);
-              if (success) {
-                setSongs((prevSongs) => prevSongs.filter((s) => s.songId !== songId));
-                Alert.alert('Success', 'Song removed from playlist');
-              } else {
-                Alert.alert('Error', 'Failed to remove song');
-              }
-            } catch (error) {
-              console.error('Error removing song:', error);
+    Alert.alert('Remove Song', 'Remove this song from playlist?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          setLoadingSongId(songId);
+          try {
+            const success = await removeSongFromPlaylist(
+              playlist.playlistId,
+              songId
+            );
+            if (success) {
+              setSongs((prev) => prev.filter((s) => s.songId !== songId));
+            } else {
               Alert.alert('Error', 'Failed to remove song');
-            } finally {
-              setLoadingSongId(null);
             }
-          },
+          } catch (err) {
+            console.error('Remove song error:', err);
+            Alert.alert('Error', 'Failed to remove song');
+          } finally {
+            setLoadingSongId(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
+  /** ✅ Chuyển sang song details */
   const handleSongPress = (song: Song) => {
     router.push({
       pathname: '/song-details',
       params: { song: JSON.stringify(song) },
     } as never);
   };
+
+  /** ✅ Refresh */
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    if (playlistId) {
+      loadPlaylistAndSongs(String(playlistId));
+    } else {
+      loadSongs();
+    }
+  }, [playlistId, loadPlaylistAndSongs, loadSongs]);
+
+  if (!playlist) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#1ce5ff" />
+      </View>
+    );
+  }
 
   // Xử lý mở modal thêm bài hát
   const handleOpenAddModal = async () => {
@@ -357,7 +410,7 @@ const PlaylistDetailsLibraryScreen = () => {
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity 
             style={styles.retryButton}
-            onPress={() => params.playlistId && loadPlaylistAndSongs(params.playlistId)}
+            onPress={() => playlistId && loadPlaylistAndSongs(String(playlistId))}
           >
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
@@ -391,17 +444,19 @@ const PlaylistDetailsLibraryScreen = () => {
         <Text style={styles.songCount}>{songs.length} songs</Text>
       </View>
 
-      {/* Songs List */}
+      {/* Songs */}
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color="#1ce5ff" />
           <Text style={styles.loadingText}>Loading songs...</Text>
         </View>
       ) : (
         <FlatList
           data={songs}
-          keyExtractor={(item) => item.songId}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
           renderItem={({ item }) => (
             <View style={styles.songItem}>
               <TouchableOpacity
@@ -418,7 +473,9 @@ const PlaylistDetailsLibraryScreen = () => {
                     {item.title}
                   </Text>
                   <Text style={styles.songArtist} numberOfLines={1}>
-                    {Array.isArray(item.artist) ? item.artist.join(', ') : item.artist}
+                    {Array.isArray(item.artist)
+                      ? item.artist.join(', ')
+                      : item.artist}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -600,10 +657,8 @@ const PlaylistDetailsLibraryScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -612,15 +667,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 16,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000',
-  },
-  playlistInfo: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
+  playlistInfo: { alignItems: 'center', paddingVertical: 24 },
   playlistIcon: {
     width: 120,
     height: 120,
