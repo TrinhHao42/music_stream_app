@@ -11,8 +11,13 @@ const storage = {
         // Trên web, dùng AsyncStorage
         return await AsyncStorage.getItem(key);
       } else {
-        // Trên mobile, dùng SecureStore
-        return await SecureStore.getItemAsync(key);
+        // Trên mobile, thử dùng SecureStore, fallback về AsyncStorage nếu lỗi
+        try {
+          return await SecureStore.getItemAsync(key);
+        } catch (error) {
+          console.warn(`SecureStore failed for ${key}, falling back to AsyncStorage:`, error);
+          return await AsyncStorage.getItem(key);
+        }
       }
     } catch (error) {
       console.error(`Error getting item ${key}:`, error);
@@ -27,12 +32,17 @@ const storage = {
         // Trên web, dùng AsyncStorage
         await AsyncStorage.setItem(key, value);
       } else {
-        // Trên mobile, dùng SecureStore
-        await SecureStore.setItemAsync(key, value);
+        // Trên mobile, thử dùng SecureStore, fallback về AsyncStorage nếu lỗi
+        try {
+          await SecureStore.setItemAsync(key, value);
+        } catch (error) {
+          console.warn(`SecureStore failed for ${key}, falling back to AsyncStorage:`, error);
+          await AsyncStorage.setItem(key, value);
+        }
       }
     } catch (error) {
       console.error(`Error setting item ${key}:`, error);
-      throw error;
+      // Không throw để tránh crash app, chỉ log lỗi
     }
   },
 
@@ -43,12 +53,17 @@ const storage = {
         // Trên web, dùng AsyncStorage
         await AsyncStorage.removeItem(key);
       } else {
-        // Trên mobile, dùng SecureStore
-        await SecureStore.deleteItemAsync(key);
+        // Trên mobile, thử dùng SecureStore, fallback về AsyncStorage nếu lỗi
+        try {
+          await SecureStore.deleteItemAsync(key);
+        } catch (error) {
+          console.warn(`SecureStore failed for ${key}, falling back to AsyncStorage:`, error);
+          await AsyncStorage.removeItem(key);
+        }
       }
     } catch (error) {
       console.error(`Error removing item ${key}:`, error);
-      throw error;
+      // Không throw để tránh crash app, chỉ log lỗi
     }
   },
 };

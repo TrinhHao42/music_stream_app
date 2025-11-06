@@ -44,6 +44,11 @@ const LibraryAlbumItem = ({ album, showAddToLibrary = false }: Props) => {
         }
     };
 
+    const artistNames = Array.isArray(album.artists) ? album.artists : (album as any).artist ? [ (album as any).artist ] : [];
+    const shownArtists = artistNames.slice(0, 2).join(', ');
+    const hasMoreArtists = artistNames.length > 2;
+    const songsCount = album.songs?.length || 0;
+
     return (
         <TouchableOpacity
             style={styles.card} activeOpacity={0.8}
@@ -58,10 +63,14 @@ const LibraryAlbumItem = ({ album, showAddToLibrary = false }: Props) => {
             />
             <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.title}>{album.albumName}</Text>
-                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', marginTop: 4 }}>
-                    <Text style={{ color: '#777' }}>{album.artists?.join(', ') || 'Unknown'}</Text>
-                    <Entypo name="dot-single" size={24} color="gray" />
-                    <Text style={{ color: '#777' }}>{album.songs?.length || 0} songs</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1, paddingRight: 8, flexDirection: 'row', alignItems: 'center' }}>
+                        <Text numberOfLines={1} style={{ color: '#777' }}>{shownArtists || 'Unknown'}{hasMoreArtists ? ' ...' : ''}</Text>
+                    </View>
+                    <View style={styles.countBadge}>
+                        <Entypo name="music" size={12} color="#fff" />
+                        <Text style={styles.countText}>{songsCount}</Text>
+                    </View>
                 </View>
             </View>
             {showAddToLibrary ? (
@@ -80,6 +89,8 @@ const styles = StyleSheet.create({
     img: { width: 64, height: 64, borderRadius: 10 },
     title: { fontSize: 16, fontWeight: '600' },
     iconBtn: { padding: 4 },
+    countBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#11181C', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
+    countText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 })
 
 export default LibraryAlbumItem

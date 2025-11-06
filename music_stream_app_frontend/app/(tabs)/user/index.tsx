@@ -261,9 +261,15 @@ const UserScreen = () => {
     >
       {/* Header với gradient background */}
       <LinearGradient
-        colors={['#667EEA', '#764BA2']}
+        colors={[
+          "rgba(90,41,168,0.85)",
+          "rgba(189,20,107,0.35)",
+          "rgba(189,20,107,0.35)",
+          "rgba(210,9,186,0.85)"
+        ]}
+        locations={[0, 0.45, 0.55, 1]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 1, y: 0 }}
         style={styles.headerGradient}
       >
         <View style={styles.header}>
@@ -432,7 +438,7 @@ const UserScreen = () => {
         disabled={loggingOut}
       >
         <LinearGradient
-          colors={['#FF6B6B', '#EE5A6F']}
+          colors={["#5A29A8", "#BD146B", "#BD146B", "#D209BA"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[styles.logoutBtn, loggingOut && { opacity: 0.6 }]}
