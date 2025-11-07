@@ -21,4 +21,5 @@ public interface PlaylistService {
     Playlist removeSongFromPlaylist(String playlistId, String songId);
 
     Playlist getSongsInPlaylist(String playlistId);
+    Playlist getPlaylistById(String playlistId);
 }

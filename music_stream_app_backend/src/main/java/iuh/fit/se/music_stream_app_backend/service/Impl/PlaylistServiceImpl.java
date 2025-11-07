@@ -112,6 +112,12 @@ public class PlaylistServiceImpl implements iuh.fit.se.music_stream_app_backend.
     }
 
     @Override
+    public Playlist getPlaylistById(String playlistId) {
+        return playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new ResourceNotFoundException("Playlist", "id", playlistId));
+    }
+
+    @Override
     public Playlist getPlaylistByUserIdAndPlaylistId(String userId, String playlistId) {
         Playlist playlist = playlistRepository.findById(playlistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Playlist", "id", playlistId));

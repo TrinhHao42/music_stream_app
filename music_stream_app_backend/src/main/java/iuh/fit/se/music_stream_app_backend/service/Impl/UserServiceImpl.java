@@ -45,5 +45,17 @@ public class UserServiceImpl implements iuh.fit.se.music_stream_app_backend.serv
         userRepository.deleteById(id);
     }
 
+    @Override
+    public boolean renameUsername(String id, String newUsername) {
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setUserName(newUsername);
+            userRepository.save(user);
+            return true;
+        }
+        return false;
+    }
+
 
 }
