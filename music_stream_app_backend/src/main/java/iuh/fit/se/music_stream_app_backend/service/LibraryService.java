@@ -4,7 +4,7 @@ import iuh.fit.se.music_stream_app_backend.dto.response.LibraryResponse;
 import iuh.fit.se.music_stream_app_backend.models.Library;
 
 public interface LibraryService {
-    Library getOrCreateLibrary(String userId);
+    Library createLibrary(String userId);
     LibraryResponse getLibraryByUserId(String userId);
 
     // Song operations

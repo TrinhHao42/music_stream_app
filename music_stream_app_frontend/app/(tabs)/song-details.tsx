@@ -1,4 +1,4 @@
-import { getDownloadStreamUrl, getDownloadToken } from '@/api/musicApi';
+import { addSongToLibrary, addSongToPlaylist, getDownloadStreamUrl, getDownloadToken, getLibrary, getUserPlaylists } from '@/api/musicApi';
 import { useAuth } from '@/contexts/AuthContext';
 import Song from '@/types/Song';
 import formatCompactNumber from '@/utils/FormatCompactNumber';
@@ -7,7 +7,14 @@ import { File, Paths } from 'expo-file-system';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+type Playlist = {
+  playlistId: string;
+  playlistName: string;
+  userId: string;
+  songs: string[];
+};
 
 const formatDuration = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -18,9 +25,22 @@ const formatDuration = (seconds: number): string => {
 export default function SongDetails() {
   const router = useRouter();
   const params = useLocalSearchParams<{ song: string }>();
-  const { isPremium } = useAuth();
+  const { isPremium, user } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  
+  // Modal states
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<{
+    addToFavorites: boolean;
+    playlists: string[]; // array of playlist IDs
+  }>({
+    addToFavorites: false,
+    playlists: [],
+  });
+  const [adding, setAdding] = useState(false);
 
   // Parse song from params
   if (!params.song) {
@@ -62,6 +82,126 @@ export default function SongDetails() {
       pathname: '/play-audio',
       params: { song: JSON.stringify(song) }
     });
+  };
+
+  // Xử lý mở modal thêm bài hát
+  const handleOpenAddModal = async () => {
+    if (!user) {
+      Alert.alert('Login required', 'Please sign in to add songs');
+      return;
+    }
+    
+    setLoadingPlaylists(true);
+    setAddModalVisible(true);
+    
+    try {
+      // Load library để check favourite songs
+      const library = await getLibrary(user.userId);
+      const isFavorite = library?.favouriteSongs?.some(s => s.songId === song.songId) || false;
+      
+      // Load all user playlists
+      const userPlaylists = await getUserPlaylists(user.userId);
+      setPlaylists(userPlaylists);
+      
+      // Check which playlists already contain this song
+      const playlistsWithSong = userPlaylists
+        .filter(pl => pl.songs.includes(song.songId))
+        .map(pl => pl.playlistId);
+      
+      // Set initial selections based on current state
+      setSelectedOptions({
+        addToFavorites: isFavorite,
+        playlists: playlistsWithSong,
+      });
+    } catch (error) {
+      console.error('Error loading playlists:', error);
+      // Reset selections if error
+      setSelectedOptions({
+        addToFavorites: false,
+        playlists: [],
+      });
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
+  // Toggle favorite option
+  const toggleFavorite = () => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      addToFavorites: !prev.addToFavorites,
+    }));
+  };
+
+  // Toggle playlist
+  const togglePlaylist = (playlistId: string) => {
+    setSelectedOptions(prev => {
+      const isSelected = prev.playlists.includes(playlistId);
+      return {
+        ...prev,
+        playlists: isSelected
+          ? prev.playlists.filter(id => id !== playlistId)
+          : [...prev.playlists, playlistId],
+      };
+    });
+  };
+
+  // Xử lý thêm bài hát vào các nơi đã chọn
+  const handleAddSong = async () => {
+    if (!user) return;
+
+    const { addToFavorites, playlists: selectedPlaylists } = selectedOptions;
+    
+    // Check if at least one option is selected
+    if (!addToFavorites && selectedPlaylists.length === 0) {
+      Alert.alert('Notice', 'Please select at least one destination');
+      return;
+    }
+
+    setAdding(true);
+    const results: string[] = [];
+
+    try {
+      // Add to favorites
+      if (addToFavorites) {
+        try {
+          const success = await addSongToLibrary(user.userId, song.songId);
+          if (success) {
+            results.push('✓ Added to favourites');
+          } else {
+            results.push('✗ Failed to add to favourites');
+          }
+        } catch {
+          results.push('✗ Error adding to favourites');
+        }
+      }
+
+      // Add to playlists
+      for (const playlistId of selectedPlaylists) {
+        const targetPlaylist = playlists.find(p => p.playlistId === playlistId);
+        if (targetPlaylist) {
+          try {
+            const success = await addSongToPlaylist(playlistId, song.songId);
+            if (success) {
+              results.push(`✓ Added to "${targetPlaylist.playlistName}"`);
+            } else {
+              results.push(`✗ Failed to add to "${targetPlaylist.playlistName}"`);
+            }
+          } catch {
+            results.push(`✗ Error adding to "${targetPlaylist.playlistName}"`);
+          }
+        }
+      }
+
+      // Show results
+      Alert.alert('Result', results.join('\n'));
+      setAddModalVisible(false);
+    } catch (error) {
+      console.error('Error adding song:', error);
+      Alert.alert('Error', 'An error occurred while adding the song');
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleDownload = async () => {
@@ -159,7 +299,9 @@ export default function SongDetails() {
           <Ionicons name="chevron-back" size={28} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Song Details</Text>
-        <View style={{ width: 28 }} />
+        <TouchableOpacity onPress={handleOpenAddModal}>
+          <Ionicons name="add-circle" size={28} color="black" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -236,6 +378,95 @@ export default function SongDetails() {
         {/* Bottom spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Add Song Modal */}
+      <Modal
+        visible={addModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.addModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add to</Text>
+              <TouchableOpacity onPress={() => setAddModalVisible(false)}>
+                <Ionicons name="close" size={28} color="#000" />
+              </TouchableOpacity>
+            </View>
+
+            {loadingPlaylists ? (
+              <ActivityIndicator size="large" color="#1ce5ff" style={{ marginVertical: 20 }} />
+            ) : (
+              <ScrollView style={styles.modalContent}>
+                {/* Add to Favorites */}
+                <TouchableOpacity 
+                  style={styles.optionItem}
+                  onPress={toggleFavorite}
+                >
+                  <Ionicons 
+                    name={selectedOptions.addToFavorites ? "checkbox" : "square-outline"} 
+                    size={24} 
+                    color={selectedOptions.addToFavorites ? "#1ce5ff" : "#999"} 
+                  />
+                  <Ionicons name="heart" size={20} color="#E53935" style={styles.optionIcon} />
+                  <Text style={styles.optionText}>Favourites</Text>
+                </TouchableOpacity>
+
+                {/* Playlists */}
+                {playlists.length > 0 && (
+                  <>
+                    <Text style={styles.sectionTitle}>Playlists</Text>
+                    {playlists.map((pl) => (
+                      <TouchableOpacity 
+                        key={pl.playlistId}
+                        style={styles.optionItem}
+                        onPress={() => togglePlaylist(pl.playlistId)}
+                      >
+                        <Ionicons 
+                          name={selectedOptions.playlists.includes(pl.playlistId) ? "checkbox" : "square-outline"} 
+                          size={24} 
+                          color={selectedOptions.playlists.includes(pl.playlistId) ? "#1ce5ff" : "#999"} 
+                        />
+                        <Ionicons name="list" size={20} color="#666" style={styles.optionIcon} />
+                        <Text style={styles.optionText}>{pl.playlistName}</Text>
+                        <Text style={styles.modalSongCount}>({pl.songs?.length || 0})</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                )}
+
+                {playlists.length === 0 && !loadingPlaylists && (
+                  <Text style={styles.emptyText}>No playlists yet. Create a new one!</Text>
+                )}
+              </ScrollView>
+            )}
+
+            {/* Add Button */}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setAddModalVisible(false)}
+                disabled={adding}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleAddSong}
+                disabled={adding}
+              >
+                {adding ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Add</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -339,10 +570,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#666',
+    marginTop: 16,
+    marginBottom: 8,
   },
   detailRow: {
     flexDirection: 'row',
@@ -360,5 +592,85 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  addModal: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+  },
+  modalContent: {
+    padding: 20,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  optionIcon: {
+    marginLeft: 8,
+  },
+  optionText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  modalSongCount: {
+    fontSize: 14,
+    color: '#999',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  confirmButton: {
+    backgroundColor: '#1ce5ff',
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

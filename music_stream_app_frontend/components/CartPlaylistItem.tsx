@@ -1,3 +1,4 @@
+import Entypo from '@expo/vector-icons/Entypo';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -21,23 +22,13 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
   const router = useRouter();
 
   const handlePress = () => {
-    if (fromLibrary) {
-      // Navigate to library playlist details page
-      router.push({
-        pathname: '/library/playlist-details',
-        params: {
-          playlist: JSON.stringify(playlist),
-        },
-      } as never);
-    } else {
-      // Navigate to regular playlist details page
-      router.push({
-        pathname: '/library/playlist-details',
-        params: {
-          playlistId: playlist.playlistId,
-        },
-      });
-    }
+    // Always navigate with playlistId only
+    router.push({
+      pathname: '/(tabs)/library/playlist-details',
+      params: {
+        playlistId: playlist.playlistId,
+      },
+    } as never);
   };
 
   const handleRemove = () => {
@@ -53,10 +44,12 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
     }
   };
 
+  const songsCount = playlist.songs?.length || 0;
+
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={handlePress}>
       <Image
-        source={require('@/assets/images/My Library/Image 101.png')}
+        source={require('@/assets/images/My Playlists/playlistImg.png')}
         style={styles.img}
         contentFit="cover"
         transition={0}
@@ -66,13 +59,16 @@ const CartPlaylistItem = ({ playlist, showRemove = false, onRemove, fromLibrary 
         <Text numberOfLines={1} style={styles.title}>
           {playlist.playlistName}
         </Text>
-        <Text style={{ color: '#777', fontSize: 13 }}>
-          {playlist.songs?.length || 0} songs
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+          <View style={styles.songCountBadge}>
+            <Entypo name="music" size={12} color="#fff" />
+            <Text style={styles.songCountText}>{songsCount}</Text>
+          </View>
+        </View>
       </View>
       {showRemove ? (
         <TouchableOpacity onPress={handleRemove} style={styles.removeBtn}>
-          <Ionicons name="close-circle" size={24} color="#E53935" />
+          <Ionicons name="trash-outline" size={20} color="#E53935" />
         </TouchableOpacity>
       ) : (
         <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -99,6 +95,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#11181C',
+  },
+  songCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#11181C',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  songCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   removeBtn: {
     padding: 4,

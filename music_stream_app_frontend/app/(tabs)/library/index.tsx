@@ -1,10 +1,10 @@
 import {
   createPlaylist,
   getLibrary,
-  removeAlbumFromLibrary,
-  removeArtistFromLibrary,
+  removeFavouriteAlbum,
+  removeFavouriteArtist,
+  removeFavouriteSong,
   removePlaylistFromLibrary,
-  removeSongFromLibrary,
 } from '@/api/musicApi';
 import CartAlbumItem from '@/components/CartAlbumItem';
 import CartArtistItem from '@/components/CartArtistItem';
@@ -15,7 +15,7 @@ import { Album, Artist, Song } from '@/types';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -131,6 +131,15 @@ const LibraryScreen = () => {
     loadLibrary();
   }, [loadLibrary]);
 
+  // Auto refresh library khi màn hình được focus (quay lại từ màn hình khác)
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadLibrary();
+      }
+    }, [user, loadLibrary])
+  );
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadLibrary(true);
@@ -164,28 +173,66 @@ const LibraryScreen = () => {
     }
   };
 
-  // === Remove Handlers ===
-  const createRemoveHandler = useCallback(
-    (removeFn: (userId: string, id: string) => Promise<boolean>, successMsg: string) =>
-      async (id: string) => {
-        if (!user) return;
-        try {
-          const success = await removeFn(user.userId, id);
-          if (success) {
-            Alert.alert('Success', successMsg);
-            await loadLibrary(true);
-          }
-        } catch (error) {
-          Alert.alert('Error', `Failed to remove`);
-        }
-      },
-    [user, loadLibrary]
-  );
+  // === Remove Handlers === (API mới)
+  const handleRemoveSong = useCallback(async (songId: string) => {
+    if (!user) return;
+    try {
+      const success = await removeFavouriteSong(user.userId, songId);
+      if (success) {
+        Alert.alert('Success', 'Removed song from favourites');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Error', 'Unable to remove song');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to remove song');
+    }
+  }, [user, loadLibrary]);
 
-  const handleRemoveSong = createRemoveHandler(removeSongFromLibrary, 'Song removed');
-  const handleRemoveAlbum = createRemoveHandler(removeAlbumFromLibrary, 'Album removed');
-  const handleRemoveArtist = createRemoveHandler(removeArtistFromLibrary, 'Artist unfollowed');
-  const handleRemovePlaylist = createRemoveHandler(removePlaylistFromLibrary, 'Playlist removed');
+  const handleRemoveAlbum = useCallback(async (albumId: string) => {
+    if (!user) return;
+    try {
+      const success = await removeFavouriteAlbum(user.userId, albumId);
+      if (success) {
+        Alert.alert('Success', 'Removed album from favourites');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Error', 'Unable to remove album');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to remove album');
+    }
+  }, [user, loadLibrary]);
+
+  const handleRemoveArtist = useCallback(async (artistId: string) => {
+    if (!user) return;
+    try {
+      const success = await removeFavouriteArtist(user.userId, artistId);
+      if (success) {
+        Alert.alert('Success', 'Unfollowed artist');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Error', 'Unable to unfollow artist');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to unfollow artist');
+    }
+  }, [user, loadLibrary]);
+
+  const handleRemovePlaylist = useCallback(async (playlistId: string) => {
+    if (!user) return;
+    try {
+      const success = await removePlaylistFromLibrary(user.userId, playlistId);
+      if (success) {
+        Alert.alert('Success', 'Removed playlist from library');
+        await loadLibrary(true);
+      } else {
+        Alert.alert('Error', 'Unable to remove playlist');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to remove playlist');
+    }
+  }, [user, loadLibrary]);
 
   // === Render Item Helpers ===
   const renderItemWithDelete = useCallback(
@@ -239,6 +286,7 @@ const LibraryScreen = () => {
         Component: React.ComponentType<any>;
         props?: any;
         propKey?: string; // Key to use when passing item to component
+        idKey: string;
       };
     } = {
       Playlists: { 
@@ -246,31 +294,35 @@ const LibraryScreen = () => {
         titleKey: 'playlistName', 
         Component: CartPlaylistItem, 
         props: { showRemove: false, fromLibrary: true },
-        propKey: 'playlist'
+        propKey: 'playlist',
+        idKey: 'playlistId'
       },
       Songs: { 
         data: songs, 
         titleKey: 'title', 
         Component: CartSongItem, 
         props: { showAddToPlaylist: true, showDownloaded: true },
-        propKey: 'song'
+        propKey: 'song',
+        idKey: 'songId'
       },
       Albums: { 
         data: albums, 
         titleKey: 'albumName', 
         Component: CartAlbumItem,
-        propKey: 'album'
+        propKey: 'album',
+        idKey: 'albumId'
       },
       Artists: { 
         data: artists, 
         titleKey: 'artistName', 
         Component: CartArtistItem,
-        propKey: 'artist'
+        propKey: 'artist',
+        idKey: 'artistId'
       },
     };
 
     if (selectedCategory) {
-      const { data, titleKey, Component, props = {}, propKey } = dataMap[selectedCategory];
+      const { data, titleKey, Component, props = {}, propKey, idKey } = dataMap[selectedCategory];
       const onRemoveMap: { [key: string]: ((id: string) => Promise<void>) | undefined } = {
         Playlists: handleRemovePlaylist,
         Songs: handleRemoveSong,
@@ -283,7 +335,7 @@ const LibraryScreen = () => {
         <FlatList
           data={data}
           renderItem={({ item }) => renderItemWithDelete(item, titleKey, onRemove!, Component, props, propKey)}
-          keyExtractor={(item) => item[`${titleKey.replace('Name', '')}Id`]}
+          keyExtractor={(item) => item[idKey]}
           ListEmptyComponent={<Text style={styles.emptyText}>No {selectedCategory.toLowerCase()} yet</Text>}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         />
@@ -308,6 +360,7 @@ const LibraryScreen = () => {
         props: dataMap[cat].props || {},
         propKey: dataMap[cat].propKey,
         onRemove: onRemoveMap[cat],
+        idKey: dataMap[cat].idKey,
       };
     });
 
@@ -321,7 +374,7 @@ const LibraryScreen = () => {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>{item.title}</Text>
               {item.data.map((el: any) => (
-                <View key={el[`${item.titleKey.replace('Name', '')}Id`]} style={styles.itemWithDelete}>
+                <View key={el[item.idKey]} style={styles.itemWithDelete}>
                   <View style={{ flex: 1 }}>
                     <item.Component {...{ [item.propKey || item.titleKey]: el, ...item.props }} />
                   </View>
@@ -332,7 +385,7 @@ const LibraryScreen = () => {
                         `Remove "${el[item.titleKey]}"?`,
                         [
                           { text: 'Cancel', style: 'cancel' },
-                          { text: 'Remove', style: 'destructive', onPress: () => item.onRemove?.(el[`${item.titleKey.replace('Name', '')}Id`]) },
+                          { text: 'Remove', style: 'destructive', onPress: () => item.onRemove?.(el[item.idKey]) },
                         ]
                       );
                     }}

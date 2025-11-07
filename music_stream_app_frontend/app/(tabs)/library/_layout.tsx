@@ -17,6 +17,12 @@ const LibraryLayout = () => {
             <Stack.Screen
                 name="playlist-details"
             />
+            <Stack.Screen
+                name="album-details"
+            />
+            <Stack.Screen
+                name="artist-profile"
+            />
         </Stack>
     )
 }

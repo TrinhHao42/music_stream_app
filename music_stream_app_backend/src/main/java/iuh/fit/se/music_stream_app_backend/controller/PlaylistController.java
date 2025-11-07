@@ -52,6 +52,12 @@ public class PlaylistController {
         Playlist updated = playlistService.UpdatePlaylist(playlist);
         return ResponseEntity.ok(updated);
     }
+    @GetMapping("/{id}")
+    @Operation(summary = "Get playlist by ID", description = "Get a playlist by its ID")
+    public ResponseEntity<Playlist> getPlaylistById(@PathVariable String id) {
+        Playlist playlist = playlistService.getPlaylistById(id);
+        return ResponseEntity.ok(playlist);
+    }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete playlist", description = "Delete a playlist")
