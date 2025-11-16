@@ -12,7 +12,7 @@ const HomeLayout = () => {
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarStyle: { 
+                tabBarStyle: {
                     backgroundColor: 'white',
                 },
             }}
